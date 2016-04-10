@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>0.3js test</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<link rel="stylesheet" href="reset.css" type="text/css">
+	<link rel="stylesheet" href="style.css" type="text/css">
+	<script src="0.3js/D3.js"></script>
+	<script src="ace-builds/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+	<script src="test.js"></script>
+</head>
+<body onload="start()">
+	<div id="entire">
+		<div class="column">
+			<pre id="editor">
+precision mediump float;
+uniform float uf_time;
+uniform vec2 uv2_resolution;
+uniform sampler2D us2_frame;
+varying vec2 vv2_v;
+
+uniform float slide; //slide{"default": 0, "min": 0, "max": 10, "step": 0.01}
+uniform vec3 color1; //color{"default": 0, "min": 0, "max": 1, "step": 0.01}
+
+float hash(in float x) { return fract(sin(x)*265871.1723); }
+float hash(in vec2 x) { return hash(dot(x,vec2(11.,313.))); }
+float hash(in vec3 x) { return hash(dot(x,vec3(3.2,57.55,117.234))); }
+
+float noise(in vec3 v)
+{
+    const vec2 E = vec2(1., 0.);
+    vec3 F = floor(v), f = fract(v);
+    f *= f * (3. - 2. * f);
+    return mix(
+        mix(mix(hash(F+E.yyy), hash(F+E.xyy), f.x),
+            mix(hash(F+E.yxy), hash(F+E.xxy), f.x), f.y),
+        mix(mix(hash(F+E.yyx), hash(F+E.xyx), f.x),
+            mix(hash(F+E.yxx), hash(F+E.xxx), f.x), f.y), f.z);
+}
+
+float map(vec3 p) {
+	return length(p) - 1. + .1*sin(uf_time + 6.283*noise(p*3.));
+}
+
+vec3 N(vec3 p) {
+	vec2 e = vec2(.001, 0.);
+	return normalize(vec3(
+        map(p+e.xyy) - map(p-e.xyy),
+		map(p+e.yxy) - map(p-e.yxy),
+		map(p+e.yyx) - map(p-e.yyx)
+	));
+}
+
+float trace(vec3 O, vec3 D, float L) {
+	for (int i = 0; i < 32; ++i) {
+		vec3 p = O + D * L;
+		float d = map(p);
+		L += d;
+		if (d < .01)
+			break;
+	}
+	return L;
+}
+
+vec3 enlightDir(in vec3 n, in vec3 ed, in vec3 ld, in vec3 lc, in vec3 dc, in vec4 spec) {
+    return lc * (
+	  dc * max(0., dot(n,ld))
+	+ spec.rgb * pow(max(0.,dot(normalize(ld-ed), n)), spec.w)
+        * (spec.w + 2.) * (spec.w + 4.) / (24. * (spec.w + pow(2., -spec.w/2.)))
+	);
+}
+
+void main() {
+	vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
+	uv.x *= uv2_resolution.x / uv2_resolution.y;
+	
+	vec3 O = vec3(0., 0., 2.6);
+	vec3 D = normalize(vec3(uv, -2.));
+	
+	float l = trace(O, D, 0.);
+	vec3 p = O + D * l;
+	
+	vec3 color = vec3(0.);
+	
+	if (l < 10.)
+		color += enlightDir(N(p), D, normalize(vec3(1.)), vec3(1.), color1.rgb, vec4(1., 1., 1., max(1., pow(slide, 3.))));
+	
+	gl_FragColor = vec4(pow(color, vec3(.7)), 1.);
+}
+			</pre><div id="controls"></div>
+		</div><div class="column">
+			<canvas id="glcanvas">No WebGL support :(</canvas>
+		</div>
+	</div>
+</body>
+</html>
