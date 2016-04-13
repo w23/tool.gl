@@ -1,4 +1,5 @@
 @import url(https://fonts.googleapis.com/css?family=Play:700);
+@import url(https://fonts.googleapis.com/css?family=Open+Sans&subset=latin,cyrillic);
 @import './reset.css';
 
 html {
@@ -10,7 +11,9 @@ body {
 	background-image: url(../img/pattern-green.png);
 	background-repeat: repeat;
 	height: 100%;
-	font-family: arial, sans-serif;
+	font-family: 'Open Sans', arial, sans-serif;
+	font-size: 14px;
+	line-height: 18px;
 }
 
 .wrapper {
@@ -32,9 +35,21 @@ body {
 .content {
 	background-color: #fff;
 	height: 100%;
-	padding: 0 15px
+	padding: 60px 7px 45px;
+	box-sizing: border-box;
 }
-
+	.content__canvas {
+		float: left;
+		width: 50%;
+		padding: 0 8px;
+		box-sizing: border-box;
+	}
+	.content__editor {
+		float: right;
+		width: 50%;
+		padding: 0 8px;
+		box-sizing: border-box;
+	}
 
 .navbar {
 	position: absolute;
@@ -73,14 +88,23 @@ body {
 	left: 15px;
 	top: 5px;
 	text-decoration: none;
+	font-size: 14px;
 }
 .github-link:visited {
 	color: #fff;
 }
 	.github-link__icon {
+		position: relative;
 		display: inline-block;
+		top: 1px;
 		background-image: url(../img/github-icon.png);
 		height: 16px;
 		width: 16px;
 		background-size: cover;
 	}
+
+.img-responsive {
+	display: block;
+	width: 100%;
+	max-width: 100%;
+}
