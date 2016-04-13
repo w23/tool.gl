@@ -1,96 +1,99 @@
 var ShaderTool = new (function ShaderTool(){
 
-	function catchReady(fn) {
-		var L = 'loading';
-		if (document.readyState != L){
-			fn();
-		} else if (document.addEventListener) {
-			document.addEventListener('DOMContentLoaded', fn);
-		} else {
-			document.attachEvent('onreadystatechange', function() {
-				if (document.readyState != L){
-					fn();
-				}	
-			});
-		}
-	}
+    function catchReady(fn) {
+        var L = 'loading';
+        if (document.readyState != L){
+            fn();
+        } else if (document.addEventListener) {
+            document.addEventListener('DOMContentLoaded', fn);
+        } else {
+            document.attachEvent('onreadystatechange', function() {
+                if (document.readyState != L){
+                    fn();
+                }    
+            });
+        }
+    }
 
-	this.VERSION = '0.01';
+    this.VERSION = '0.01';
 
-	this.modules = {};
-	this.elements = {};
+    this.modules = {};
+    this.elements = {};
 
-	var self = this;
-	catchReady(function(){
-		self.modules.Ticker.init();
-		self.modules.GUIHelper.init();
-		self.modules.Editor.init();
-		// self.modules.Presenter.init();
-		self.modules.Renderer.init();
+    var self = this;
+    catchReady(function(){
+        self.modules.Ticker.init();
+        self.modules.GUIHelper.init();
+        self.modules.Editor.init();
+        // self.modules.Presenter.init();
+        // self.modules.Renderer.init();
+        self.modules.Rendering.init();
 
-		// Apply logic
-		// TODO: Move logic to Renderer
-		self.modules.Editor.onChange.add(function(){
-			var newValue = self.modules.Editor.getValue();
+        /*
+        // Apply logic
+        // TODO: Move logic to Renderer
+        self.modules.Editor.onChange.add(function(){
+            var newValue = self.modules.Editor.getValue();
 
-			var uniforms = self.modules.Renderer.updateSource(newValue);
-			// self.modules.Controls.updateControls(uniforms);
-		});
+            var uniforms = self.modules.Renderer.updateSource(newValue);
+            // self.modules.Controls.updateControls(uniforms);
+        });
+        */
 
-		document.documentElement.className = '_ready';
-	});
+        document.documentElement.className = '_ready';
+    });
 
 })();
 
 // Utils
 ShaderTool.utils = {
-	trim: function( string ){
-		return string.replace(/^\s+|\s+$/g, '');
-	},
-	isSet: function( object ){
-		return typeof object != 'undefined' && object != null
-	},
-	isArray: function( object ){
-		return Object.prototype.toString.call(object) === '[object Array]';
-	},
-	isArrayLike: function( object ){
-		if(this.isArray(object)){ return true; }
-		if(this.isObject(object) && this.isNumber(object.length) ){ return true; }
-		return false;
-	},
-	isNumber: function( object ){
-		return typeof object == 'number' && !isNaN(object);
-	},
-	isFunction: function( object ){
-		return typeof object == 'function';
-	},
-	isObject: function( object ){
-		return typeof object == 'object';
-	},
-	isString: function( object ){
-		return typeof object == 'string';
-	},
-	createNamedObject: function( name, props ){
-		return internals.createNamedObject( name, props );
-	},
-	testCallback: function( callback, applyArguments, context ){
-		if(this.isFunction(callback)){
-			return callback.apply(context, applyArguments || []);
-		}
-		return null;
-	},
-	copy: function( from, to ){
-		for(var i in from){ to[i] = from[i]; }
-		return to;
-	},
-	delegate: function( context, method ){
-		return function delegated(){
-			for(var argumentsLength = arguments.length, args = new Array(argumentsLength), k=0; k<argumentsLength; k++){
-				args[k] = arguments[k];
-			}
-			return method.apply( context, args );
-		}
-	},
+    trim: function( string ){
+        return string.replace(/^\s+|\s+$/g, '');
+    },
+    isSet: function( object ){
+        return typeof object != 'undefined' && object != null
+    },
+    isArray: function( object ){
+        return Object.prototype.toString.call(object) === '[object Array]';
+    },
+    isArrayLike: function( object ){
+        if(this.isArray(object)){ return true; }
+        if(this.isObject(object) && this.isNumber(object.length) ){ return true; }
+        return false;
+    },
+    isNumber: function( object ){
+        return typeof object == 'number' && !isNaN(object);
+    },
+    isFunction: function( object ){
+        return typeof object == 'function';
+    },
+    isObject: function( object ){
+        return typeof object == 'object';
+    },
+    isString: function( object ){
+        return typeof object == 'string';
+    },
+    createNamedObject: function( name, props ){
+        return internals.createNamedObject( name, props );
+    },
+    testCallback: function( callback, applyArguments, context ){
+        if(this.isFunction(callback)){
+            return callback.apply(context, applyArguments || []);
+        }
+        return null;
+    },
+    copy: function( from, to ){
+        for(var i in from){ to[i] = from[i]; }
+        return to;
+    },
+    delegate: function( context, method ){
+        return function delegated(){
+            for(var argumentsLength = arguments.length, args = new Array(argumentsLength), k=0; k<argumentsLength; k++){
+                args[k] = arguments[k];
+            }
+            return method.apply( context, args );
+        }
+    },
     debounce: function(func, wait, immediate) {
         var timeout;
         return function() {
@@ -110,9 +113,7 @@ ShaderTool.utils = {
         };
     },  
     throttle: function(func, ms) {
-        var isThrottled = false,
-          savedArgs,
-          savedThis;
+        var isThrottled = false, savedArgs, savedThis;
 
         function wrapper() {
 
@@ -147,7 +148,7 @@ ShaderTool.utils = {
         return this.now();
     },
     isFunction: function( object ){
-    	return typeof object == 'function';
+        return typeof object == 'function';
     },
     // future methods:
     isArray: function(){},
@@ -157,13 +158,13 @@ ShaderTool.utils = {
 
 // Callback (Signal?)
 ShaderTool.utils.Callback = (function(){
-	// Callback == Signal ?
+    // Callback == Signal ?
     function Callback() {
         this._handlers = [];
 
         var self = this;
         this.callShim = function(){
-        	self.call.apply(self, arguments);
+            self.call.apply(self, arguments);
         }
     }
 
@@ -210,351 +211,355 @@ ShaderTool.utils.Callback = (function(){
 })();
 
 ShaderTool.utils.Float32Array = (function(){
-	return typeof Float32Array === 'function' ? Float32Array : Array;
+    return typeof Float32Array === 'function' ? Float32Array : Array;
 })();
 
 // Modules
 /*
 ShaderTool.modules.WindowHelper = (function(){
-	function WindowHelper(){}
+    function WindowHelper(){}
 })();
 */
 // Ticker
 ShaderTool.modules.Ticker = (function(){
-	var raf;
-	var lastTime = 0;
-	var vendors = ['ms', 'moz', 'webkit', 'o'];
-	for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-		window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-		window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
-	}
-	if (!window.requestAnimationFrame){
-		raf = function( callback ) {
-			var currTime = utils.now();
-			var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+    var raf;
+    var lastTime = 0;
+    var vendors = ['ms', 'moz', 'webkit', 'o'];
+    for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+        window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+        window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
+    }
+    if (!window.requestAnimationFrame){
+        raf = function( callback ) {
+            var currTime = utils.now();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
 
-			var id = window.setTimeout( function(){
-				callback(currTime + timeToCall);
-			}, timeToCall);
+            var id = window.setTimeout( function(){
+                callback(currTime + timeToCall);
+            }, timeToCall);
 
-			lastTime = currTime + timeToCall;
-			return id;
-		};
- 	} else {
- 		raf = function( callback ){
- 			return window.requestAnimationFrame( callback );
- 		}
- 	}
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+     } else {
+         raf = function( callback ){
+             return window.requestAnimationFrame( callback );
+         }
+     }
 
-	function Ticker(){};
-	Ticker.prototype = {
-		init: function(){
-			console.log('ShaderTool.modules.Ticker.init');
+    function Ticker(){};
+    Ticker.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.Ticker.init');
 
-			this.onTick = new ShaderTool.utils.Callback();
+            this.onTick = new ShaderTool.utils.Callback();
 
-		 	var activeState = true;
-		 	var applyArgs = [];
-			var listeners = [];
-			var prevTime = ShaderTool.utils.now();
-			var elapsedTime = 0;
-			var timeScale = 1;
-			var self = this;
+             var activeState = true;
+             var applyArgs = [];
+            var listeners = [];
+            var prevTime = ShaderTool.utils.now();
+            var elapsedTime = 0;
+            var timeScale = 1;
+            var self = this;
 
-			this.stop = this.pause = this.sleep = function(){
-				activeState = false;
-				return this;
-			}
-			this.start = this.wake = function(){
-				activeState = true;
-				return this;
-			}
-			this.timeScale = function( value ){
-				if(ShaderTool.utils.isSet(value)){ timeScale = value; }
-				return timeScale;
-			}	
-			this.toggle = function(){
-				return (activeState ? this.stop() : this.start());
-			}	
-			this.isActive = function(){
-				return activeState;
-			}
+            this.stop = this.pause = this.sleep = function(){
+                activeState = false;
+                return this;
+            }
+            this.start = this.wake = function(){
+                activeState = true;
+                return this;
+            }
+            this.timeScale = function( value ){
+                if(ShaderTool.utils.isSet(value)){ timeScale = value; }
+                return timeScale;
+            }    
+            this.toggle = function(){
+                return (activeState ? this.stop() : this.start());
+            }    
+            this.isActive = function(){
+                return activeState;
+            }
 
-			function tickHandler( nowTime ){
-				var delta = (nowTime - prevTime) * timeScale;
-				prevTime = nowTime;
+            function tickHandler( nowTime ){
+                var delta = (nowTime - prevTime) * timeScale;
+                prevTime = nowTime;
 
-				elapsedTime += delta;
+                elapsedTime += delta;
 
-				if(activeState){
-					self.onTick.call(delta, elapsedTime)
-				}
+                if(activeState){
+                    self.onTick.call(delta, elapsedTime)
+                }
 
-				raf( tickHandler );
-			}
-			raf( tickHandler );
+                raf( tickHandler );
+            }
+            raf( tickHandler );
 
-		}
-	}
-	return new Ticker();
+        }
+    }
+    return new Ticker();
 })();
 
 // Future module
 ShaderTool.modules.GUIHelper = (function(){
-	function GUIHelper(){}
-	GUIHelper.prototype = {
-		init: function(){
-			console.log('ShaderTool.modules.GUIHelper.init')
-		},
-		showError: function( message ){
-			console.error('GUIHelper: ' + message)
-		}
-	}
-	return new GUIHelper();
+    function GUIHelper(){}
+    GUIHelper.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.GUIHelper.init')
+        },
+        showError: function( message ){
+            console.error('GUIHelper: ' + message)
+        }
+    }
+    return new GUIHelper();
 })();
 
 // Editor
 ShaderTool.modules.Editor = (function(){
 
-	function Editor(){}
+    function Editor(){}
 
-	Editor.prototype = {
-		init: function(){
-			console.log('ShaderTool.modules.Editor.init');
+    Editor.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.Editor.init');
 
-			this.element = document.getElementById('editor');
+            this.element = document.getElementById('editor');
 
-			this._editor = ace.edit(this.element);
-			this._editor.getSession().setMode('ace/mode/glsl');
+            this._editor = ace.edit(this.element);
+            this._editor.getSession().setMode('ace/mode/glsl');
 
-			// https://ace.c9.io/build/kitchen-sink.html
-			// this._editor.getSession().setTheme();
+            // https://ace.c9.io/build/kitchen-sink.html
+            // this._editor.getSession().setTheme();
 
-			this._editor.$blockScrolling = Infinity;
+            this._editor.$blockScrolling = Infinity;
 
-			this.onChange = new ShaderTool.utils.Callback();
+            this.onChange = new ShaderTool.utils.Callback();
 
-			var self = this;
+            var self = this;
 
-			// TODO: Add debounce
-			this._editor.on('change', function(){
-				self.onChange.call();
-			});
-		},
-		getValue: function(){
-			return this._editor.getValue();
-		},
-		setValue: function( value ){
-			this._editor.setValue( value );
-		},
-		clear: function(){
-			this.setValue('');
-		},
-		// future methods:
-		lock: function(){},
-		unlock: function(){},
-		load: function( url ){}
-	}
+            // TODO: Add debounce
+            this._editor.on('change', function(){
+                self.onChange.call();
+            });
+        },
+        getValue: function(){
+            return this._editor.getValue();
+        },
+        setValue: function( value ){
+            this._editor.setValue( value );
+        },
+        clear: function(){
+            this.setValue('');
+        },
+        // future methods:
+        lock: function(){},
+        unlock: function(){},
+        load: function( url ){}
+    }
 
-	return new Editor();
+    return new Editor();
 })();
 
+/*
 // Renderer
 ShaderTool.modules.Renderer = (function(){
-	function Renderer(){}
+    function Renderer(){}
 
-	Renderer.prototype = {
+    Renderer.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.Renderer.init');
+
+            this.canvas = document.getElementById('glcanvas');
+
+            this._timeScale = 1;
+            this._rendering = false;
+
+            // TODO: Optimize
+            try{
+                // Passed object is a future settings for context     ↓
+                this._context = D3.createContextOnCanvas(this.canvas, {});
+
+            } catch ( e ){
+                ShaderTool.modules.GUIHelper.showError('Could not init D3.Context: ' + e)
+            }
+
+            this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
+            this._vertexSource = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
+            this._programm = null;
+
+            this._source = {
+                program: this._program,
+                attributes: {
+                    'av2_vtx': {
+                        buffer: this._buffer,
+                        size: 2,
+                        type: this._context.AttribType.Float,
+                        offset: 0
+                    }
+                },
+                uniforms: {},
+                mode: this._context.Primitive.TriangleStrip,
+                count: 4
+            };
+
+            ShaderTool.modules.Ticker.onTick.add(this.render, this);
+            this.startRendering();
+        },
+        startRendering: function(){
+            if(this._rendering){
+                return;
+            }
+            this._rendering = true;
+        },
+        stopRendering: function(){
+            if(!this._rendering){
+                return;
+            }
+            this._rendering = false;
+        },
+        updateSource: function( fragmentSource ){ // ← Add vertexSource here?
+            var newProgram = this._context.createProgram({
+                vertex: this._vertexSource,
+                fragment: fragmentSource
+            });
+            this._source.program = newProgram;
+
+            var unimatch = /^\s*uniform\s+(float|vec2|vec3|vec4)\s+([a-zA-Z]*[-_a-zA-Z0-9]).*\/\/(slide|color)({.*})/gm;
+            var uniforms = [];
+        },
+        render: function( delta, elapsedTime ){
+            if(!this._rendering){
+                return;
+            }
+
+            if (this.canvas.clientWidth !== this.canvas.width ||
+                this.canvas.clientHeight !== this.canvas.height) {
+
+                var pixelFactor = window.devicePixelRatio;
+
+                this.canvas.width = this.canvas.clientWidth * pixelFactor;
+                this.canvas.height = this.canvas.clientHeight * pixelFactor;
+
+                presenter.setResolution(this.canvas.width, this.canvas.height);
+            }
+
+            // TODO: Optimize
+            var frame = presenter.getPreviousFrame()
+            var resolution = presenter.getResolution()
+            var destination = presenter.getDestination()
+            var time = elapsedTime; //ms
+
+            this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
+            this._source.uniforms['uv2_resolution'] = this._context.UniformVec2(resolution);
+            this._source.uniforms['uf_time'] = this._context.UniformFloat(time);
+            this._context.rasterize(source, null, destination);
+
+            presenter.present(time);
+
+            console.log('render')
+        }
+    }
+
+    return new Renderer();
+})();
+
+
+*/
+ShaderTool.modules.Rendering = (function(){
+	function Rendering(){}
+	Rendering.prototype = {
 		init: function(){
-			console.log('ShaderTool.modules.Renderer.init');
+			console.log('ShaderTool.modules.Rendering.init');
+		}
+	}
 
-			this.canvas = document.getElementById('glcanvas');
+	return new Rendering();
+})();
 
-			this._timeScale = 1;
-			this._rendering = false;
+// Elements
+ShaderTool.elements.Rasterizer = (function(){
+	var VERTEX_SOURCE = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
 
-			// TODO: Optimize
-			try{
-				// Passed object is a future settings for context     ↓
-				this._context = D3.createContextOnCanvas(this.canvas, {});
+	function Rasterizer( context ){
+		this._context = context;
 
-			} catch ( e ){
-				ShaderTool.modules.GUIHelper.showError('Could not init D3.Context: ' + e)
-			}
+		this._program = null;
+		this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.util.Float32Array([1,-1,1,1,-1,-1,-1,1]));
 
-			this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
-			this._vertexSource = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
-			this._programm = null;
-
-			this._source = {
-				program: this._program,
-				attributes: {
-					'av2_vtx': {
-						buffer: this._buffer,
-						size: 2,
-						type: this._context.AttribType.Float,
-						offset: 0
-					}
-				},
-				uniforms: {},
-				mode: this._context.Primitive.TriangleStrip,
-				count: 4
-			};
-
-			ShaderTool.modules.Ticker.onTick.add(this.render, this);
-			this.startRendering();
-		},
-		startRendering: function(){
-			if(this._rendering){
-				return;
-			}
-			this._rendering = true;
-		},
-		stopRendering: function(){
-			if(!this._rendering){
-				return;
-			}
-			this._rendering = false;
-		},
-		updateSource: function( fragmentSource ){ // ← Add vertexSource here?
+		this._source = {
+			program: this._program,
+			attributes: {
+				'av2_vtx': {
+					buffer: this._buffer,
+					size: 2,
+					type: this._context.AttribType.Float,
+					offset: 0
+				}
+			},
+			uniforms: {},
+			mode: this._context.Primitive.TriangleStrip,
+			count: 4
+		};
+	}
+	Rasterizer.prototype = {
+		updateSource: function (fragmentSource) {
 			var newProgram = this._context.createProgram({
-				vertex: this._vertexSource,
+				vertex: VERTEX_SOURCE,
 				fragment: fragmentSource
 			});
-			this._source.program = newProgram;
+			source.program = newProgram;
 
+			/*
 			var unimatch = /^\s*uniform\s+(float|vec2|vec3|vec4)\s+([a-zA-Z]*[-_a-zA-Z0-9]).*\/\/(slide|color)({.*})/gm;
 			var uniforms = [];
+
+			for (;;) {
+				uniform = unimatch.exec(fragmentSource);
+				if (!uniform) {
+					break;
+				}
+
+				try {
+					uniforms.push({
+						type: uniform[1],
+						name: uniform[2],
+						kind: uniform[3],
+						settings: JSON.parse(uniform[4]),
+						handler: (
+							function (typename, name) {
+								var type;
+								if (typename === 'float') {
+									type = this._context.UniformFloat;
+								} else if (typename === 'vec2') {
+									type = this._context.UniformVec2;
+								} else if (typename === 'vec3') {
+									type = this._context.UniformVec3;
+								} else if (typename === 'vec4') {
+									type = this._context.UniformVec4;
+								}
+								return function (value) {
+									console.log(value);
+									source.uniforms[name] = type(value);
+								};
+
+						})(uniform[1], uniform[2])
+					});
+				} catch (e) {
+					console.log(e);
+				}
+			}
+
+			return uniforms;*/
 		},
-		render: function( delta, elapsedTime ){
-			if(!this._rendering){
-				return;
-			}
-
-			if (this.canvas.clientWidth !== this.canvas.width ||
-				this.canvas.clientHeight !== this.canvas.height) {
-
-				var pixelFactor = /*window.devicePixelRatio ||*/ 1;
-
-				this.canvas.width = this.canvas.clientWidth * pixelFactor;
-				this.canvas.height = this.canvas.clientHeight * pixelFactor;
-
-				presenter.setResolution(this.canvas.width, this.canvas.height);
-			}
-
-			// TODO: Optimize
-			var frame = presenter.getPreviousFrame()
-			var resolution = presenter.getResolution()
-			var destination = presenter.getDestination()
-			var time = elapsedTime; //ms
-
+		render: function (time, frame, resolution, destination) {
 			this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
+
 			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2(resolution);
+
 			this._source.uniforms['uf_time'] = this._context.UniformFloat(time);
-			this._context.rasterize(source, null, destination);
 
-			presenter.present(time);
-
-			console.log('render')
+			this._context.rasterize(this._source, null, destination);
 		}
 	}
-
-	return new Renderer();
+	return Rasterizer;
 })();
-
-// Presenter
-ShaderTool.modules.Presenter = (function(){
-	function Presenter(){}
-	Presenter.prototype = {
-
-		// TODO: All.
-		init: function(){
-			console.log('ShaderTool.modules.Presenter.init');
-
-			var fragmentSource = 'precision mediump float;\n';
-				fragmentSource += 'uniform sampler2D us2_source;\n';
-				fragmentSource += 'uniform float uf_time;\n';
-				fragmentSource += 'uniform vec2 uv2_resolution;\n';
-				fragmentSource += 'void main() {\n';
-				fragmentSource += '\tgl_FragColor = \n';
-				//vec4(gl_FragCoord.xy / uv2_resolution, sin(uf_time), 1.);\n';
-				fragmentSource += '\t\ttexture2D(us2_source, gl_FragCoord.xy / uv2_resolution);\n';
-				fragmentSource += '}\n';
-
-			this._vertexSource = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
-
-			this._program = ctx.createProgram({
-				vertex: this._vertexSource,
-				fragment: fragmentSource
-			});
-
-			this._source = {
-				program: this._program,
-				attributes: {
-					'av2_vtx': {
-						buffer: buffer,
-						size: 2,
-						type: ctx.AttribType.Float,
-						offset: 0
-					}
-				},
-				uniforms: {
-					'us2_source': ctx.UniformSampler(texture)
-				},
-				mode: ctx.Primitive.TriangleStrip,
-				count: 4
-			};
-
-			var resolution = null;
-			var texture = null;
-			var framebuffer = null;
-			var writepos = 0;
-		},
-
-		present: function ( elapsedTime ) {
-			if (!resolution) {
-				return;
-			}
-
-			writepos = (writepos + 1) & 1;
-
-			source.uniforms['uf_time'] = ctx.UniformFloat( elapsedTime );
-			source.uniforms['uv2_resolution'] = ctx.UniformVec2(resolution);
-			source.uniforms['us2_source'] = ctx.UniformSampler(texture[writepos]);
-
-			ctx.rasterize(source);
-		},
-		setResolution: function (width, height) {
-			if (!resolution) {
-
-				texture = [
-					ctx.createTexture().uploadEmpty(ctx.TextureFormat.RGBA_8, width, height),
-					ctx.createTexture().uploadEmpty(ctx.TextureFormat.RGBA_8, width, height)
-				];
-
-				framebuffer = [
-					ctx.createFramebuffer().attachColor(texture[1]),
-					ctx.createFramebuffer().attachColor(texture[0])
-				];
-
-			} else if (resolution[0] !== width || resolution[1] !== height) {
-
-				texture[0].uploadEmpty(ctx.TextureFormat.RGBA_8, width, height);
-				texture[1].uploadEmpty(ctx.TextureFormat.RGBA_8, width, height);
-
-			}
-			resolution = [width, height];
-		},
-		getPreviousFrame: function() {
-			return texture[writepos];
-		},
-		getResolution: function() {
-			return resolution;
-		},
-		getDestination: function() {
-			return { framebuffer: framebuffer[writepos] };
-		}
-	}
-
-	return new Presenter();
-})();
-// Elements
