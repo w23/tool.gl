@@ -132,6 +132,9 @@ body {
 	width: 100%;
 	max-width: 100%;
 }
+	.glcanvas{
+		background-color: #DCDCDC;
+	}
 
 .footer {
 	position: absolute;

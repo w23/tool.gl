@@ -22,14 +22,72 @@ var ShaderTool = new (function ShaderTool(){
 
 	var self = this;
 	catchReady(function(){
+		self.modules.Ticker.init();
+		self.modules.GUIHelper.init();
 		self.modules.Editor.init();
 		self.modules.Renderer.init();
+
+		// Apply logic
+		// TODO: Move logic to Renderer
+		self.modules.Editor.onChange.add(function(){
+			var newValue = self.modules.Editor.getValue();
+
+			var uniforms = self.modules.Renderer.updateSource(newValue);
+			// self.modules.Controls.updateControls(uniforms);
+		})
 	});
 
 })();
 
 // Utils
 ShaderTool.utils = {
+	trim: function( string ){
+		return string.replace(/^\s+|\s+$/g, '');
+	},
+	isSet: function( object ){
+		return typeof object != 'undefined' && object != null
+	},
+	isArray: function( object ){
+		return Object.prototype.toString.call(object) === '[object Array]';
+	},
+	isArrayLike: function( object ){
+		if(this.isArray(object)){ return true; }
+		if(this.isObject(object) && this.isNumber(object.length) ){ return true; }
+		return false;
+	},
+	isNumber: function( object ){
+		return typeof object == 'number' && !isNaN(object);
+	},
+	isFunction: function( object ){
+		return typeof object == 'function';
+	},
+	isObject: function( object ){
+		return typeof object == 'object';
+	},
+	isString: function( object ){
+		return typeof object == 'string';
+	},
+	createNamedObject: function( name, props ){
+		return internals.createNamedObject( name, props );
+	},
+	testCallback: function( callback, applyArguments, context ){
+		if(this.isFunction(callback)){
+			return callback.apply(context, applyArguments || []);
+		}
+		return null;
+	},
+	copy: function( from, to ){
+		for(var i in from){ to[i] = from[i]; }
+		return to;
+	},
+	delegate: function( context, method ){
+		return function delegated(){
+			for(var argumentsLength = arguments.length, args = new Array(argumentsLength), k=0; k<argumentsLength; k++){
+				args[k] = arguments[k];
+			}
+			return method.apply( context, args );
+		}
+	},
     debounce: function(func, wait, immediate) {
         var timeout;
         return function() {
@@ -136,12 +194,11 @@ ShaderTool.utils.Callback = (function(){
             }
         },
 
-        call: function(applyArguments) {
-            applyArguments = applyArguments || [];
+        call: function() {
             var totalHandlers = this._handlers.length;
             for (var k = 0; k < totalHandlers; k++) {
                 var handler = this._handlers[k];
-                handler.apply(null, applyArguments);
+                handler.apply(null, arguments);
             }
         }
     };
@@ -149,7 +206,110 @@ ShaderTool.utils.Callback = (function(){
     return Callback;
 })();
 
+ShaderTool.utils.Float32Array = (function(){
+	return typeof Float32Array === 'function' ? Float32Array : Array;
+})();
+
 // Modules
+/*
+ShaderTool.modules.WindowHelper = (function(){
+	function WindowHelper(){}
+})();
+*/
+// Ticker
+ShaderTool.modules.Ticker = (function(){
+	var raf;
+	var lastTime = 0;
+	var vendors = ['ms', 'moz', 'webkit', 'o'];
+	for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+		window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+		window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
+	}
+	if (!window.requestAnimationFrame){
+		raf = function( callback ) {
+			var currTime = utils.now();
+			var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+
+			var id = window.setTimeout( function(){
+				callback(currTime + timeToCall);
+			}, timeToCall);
+
+			lastTime = currTime + timeToCall;
+			return id;
+		};
+ 	} else {
+ 		raf = function( callback ){
+ 			return window.requestAnimationFrame( callback );
+ 		}
+ 	}
+
+	function Ticker(){};
+	Ticker.prototype = {
+		init: function(){
+			console.log('ShaderTool.modules.Ticker.init');
+
+			this.onTick = new ShaderTool.utils.Callback();
+
+		 	var activeState = true;
+		 	var applyArgs = [];
+			var listeners = [];
+			var prevTime = ShaderTool.utils.now();
+			var elapsed = 0;
+			var timeScale = 1;
+			var self = this;
+
+			this.stop = this.pause = this.sleep = function(){
+				activeState = false;
+				return this;
+			}
+			this.start = this.wake = function(){
+				activeState = true;
+				return this;
+			}
+			this.timeScale = function( value ){
+				if(ShaderTool.utils.isSet(value)){ timeScale = value; }
+				return timeScale;
+			}	
+			this.toggle = function(){
+				return (activeState ? this.stop() : this.start());
+			}	
+			this.isActive = function(){
+				return activeState;
+			}
+
+			function tickHandler( nowTime ){
+				var delta = (nowTime - prevTime) * timeScale;
+				prevTime = nowTime;
+
+				elapsed += delta;
+
+				if(activeState){
+					self.onTick.call(delta, elapsed)
+				}
+
+				raf( tickHandler );
+			}
+			raf( tickHandler );
+
+		}
+	}
+	return new Ticker();
+})();
+
+// Future module
+ShaderTool.modules.GUIHelper = (function(){
+	function GUIHelper(){}
+	GUIHelper.prototype = {
+		init: function(){
+			console.log('ShaderTool.modules.GUIHelper.init')
+		},
+		showError: function( message ){
+			console.error('GUIHelper: ' + message)
+		}
+	}
+	return new GUIHelper();
+})();
+
 // Editor
 ShaderTool.modules.Editor = (function(){
 
@@ -163,6 +323,9 @@ ShaderTool.modules.Editor = (function(){
 
 			this._editor = ace.edit(this.element);
 			this._editor.getSession().setMode('ace/mode/glsl');
+
+			// https://ace.c9.io/build/kitchen-sink.html
+			// this._editor.getSession().setTheme();
 
 			this._editor.$blockScrolling = Infinity;
 
@@ -200,6 +363,95 @@ ShaderTool.modules.Renderer = (function(){
 	Renderer.prototype = {
 		init: function(){
 			console.log('ShaderTool.modules.Renderer.init');
+
+			this.canvas = document.getElementById('glcanvas');
+
+			this._timeScale = 1;
+			this._rendering = false;
+
+			// TODO: Optimize
+			try{
+				// Passed object is a future settings for context     ↓
+				this._context = D3.createContextOnCanvas(this.canvas, {});
+
+			} catch ( e ){
+				ShaderTool.modules.GUIHelper.showError('Could not init D3.Context: ' + e)
+			}
+
+			this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
+			this._vertexSource = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
+			this._programm = null;
+
+			this._source = {
+				program: this._program,
+				attributes: {
+					'av2_vtx': {
+						buffer: this._buffer,
+						size: 2,
+						type: this._context.AttribType.Float,
+						offset: 0
+					}
+				},
+				uniforms: {},
+				mode: this._context.Primitive.TriangleStrip,
+				count: 4
+			};
+
+			ShaderTool.modules.Ticker.onTick.add(this.render, this);
+			this.startRendering();
+		},
+		startRendering: function(){
+			if(this._rendering){
+				return;
+			}
+			this._rendering = true;
+		},
+		stopRendering: function(){
+			if(!this._rendering){
+				return;
+			}
+			this._rendering = false;
+		},
+		updateSource: function( fragmentSource ){ // ← Add vertexSource here?
+			var newProgram = this._context.createProgram({
+				vertex: this._vertexSource,
+				fragment: fragmentSource
+			});
+			this._source.program = newProgram;
+
+			var unimatch = /^\s*uniform\s+(float|vec2|vec3|vec4)\s+([a-zA-Z]*[-_a-zA-Z0-9]).*\/\/(slide|color)({.*})/gm;
+			var uniforms = [];
+		},
+		render: function( delta, elapsed ){
+			if(!this._rendering){
+				return;
+			}
+
+			if (this.canvas.clientWidth !== this.canvas.width ||
+				this.canvas.clientHeight !== this.canvas.height) {
+
+				var pixelFactor = /*window.devicePixelRatio ||*/ 1;
+
+				this.canvas.width = this.canvas.clientWidth * pixelFactor;
+				this.canvas.height = this.canvas.clientHeight * pixelFactor;
+
+				presenter.setResolution(this.canvas.width, this.canvas.height);
+			}
+
+			// TODO: Optimize
+			var frame = presenter.getPreviousFrame()
+			var resolution = presenter.getResolution()
+			var destination = presenter.getDestination()
+			var time = elapsed; //ms
+
+			this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
+			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2(resolution);
+			this._source.uniforms['uf_time'] = this._context.UniformFloat(time);
+			this._context.rasterize(source, null, destination);
+
+			presenter.present(time);
+
+			console.log('render')
 		}
 	}
 
