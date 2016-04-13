@@ -8,12 +8,14 @@ html {
 }
 
 body {
+	position: relative;
 	background-image: url(../img/pattern-green.png);
 	background-repeat: repeat;
 	height: 100%;
 	font-family: 'Open Sans', arial, sans-serif;
 	font-size: 14px;
 	line-height: 18px;
+	min-width: 1000px;
 }
 
 .wrapper {
