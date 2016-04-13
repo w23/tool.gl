@@ -9,7 +9,8 @@ html {
 
 body {
 	position: relative;
-	background-image: url(../img/pattern-green.png);
+	/*background-image: url(../img/pattern-green.png);*/
+	background-image: url(../img/concrete_seamless.png);
 	background-repeat: repeat;
 	height: 100%;
 	font-family: 'Open Sans', arial, sans-serif;
@@ -24,6 +25,16 @@ body {
 ::-webkit-scrollbar-thumb{background:#5f5f5f;border-radius:3px;}
 ::-webkit-scrollbar-thumb:hover{background:#333;}
 
+.wrapper {
+	opacity: 0;
+	height: 0;
+	transition: opacity 0.25s ease-out;
+}
+._ready .wrapper {
+	height: 100%;
+	opacity: 1;
+}
+
 .clearfix {
 	zoom: 1;
 }
@@ -37,14 +48,10 @@ body {
 	font-size: 0;
 }
 
-.wrapper {
-	height: 100%;
-}
-
 .container {
 	margin-right: auto;
 	margin-left: auto;
-	// max-width: 1400px;
+	/*max-width: 1400px;*/
 	min-width: 1000px;
 	padding: 0 20px;
 	box-sizing: border-box;
@@ -54,7 +61,8 @@ body {
 	}
 
 .content {
-	background-color: #fff;
+	background-color: rgba(255,255,255,0.5);
+	backdrop-filter: blur(3px);
 	height: 100%;
 	padding: 60px 20px 50px;
 	box-sizing: border-box;
@@ -83,6 +91,7 @@ body {
 	height: 40px;
 	width: 100%;
 	background-color: #222;
+	box-shadow: 0 0 10px rgba(0,0,0,0.35);
 }
 	.navbar__logo {
 		position: relative;

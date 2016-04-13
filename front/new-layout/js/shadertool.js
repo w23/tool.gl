@@ -25,6 +25,7 @@ var ShaderTool = new (function ShaderTool(){
 		self.modules.Ticker.init();
 		self.modules.GUIHelper.init();
 		self.modules.Editor.init();
+		// self.modules.Presenter.init();
 		self.modules.Renderer.init();
 
 		// Apply logic
@@ -34,7 +35,9 @@ var ShaderTool = new (function ShaderTool(){
 
 			var uniforms = self.modules.Renderer.updateSource(newValue);
 			// self.modules.Controls.updateControls(uniforms);
-		})
+		});
+
+		document.documentElement.className = '_ready';
 	});
 
 })();
@@ -254,7 +257,7 @@ ShaderTool.modules.Ticker = (function(){
 		 	var applyArgs = [];
 			var listeners = [];
 			var prevTime = ShaderTool.utils.now();
-			var elapsed = 0;
+			var elapsedTime = 0;
 			var timeScale = 1;
 			var self = this;
 
@@ -281,10 +284,10 @@ ShaderTool.modules.Ticker = (function(){
 				var delta = (nowTime - prevTime) * timeScale;
 				prevTime = nowTime;
 
-				elapsed += delta;
+				elapsedTime += delta;
 
 				if(activeState){
-					self.onTick.call(delta, elapsed)
+					self.onTick.call(delta, elapsedTime)
 				}
 
 				raf( tickHandler );
@@ -422,7 +425,7 @@ ShaderTool.modules.Renderer = (function(){
 			var unimatch = /^\s*uniform\s+(float|vec2|vec3|vec4)\s+([a-zA-Z]*[-_a-zA-Z0-9]).*\/\/(slide|color)({.*})/gm;
 			var uniforms = [];
 		},
-		render: function( delta, elapsed ){
+		render: function( delta, elapsedTime ){
 			if(!this._rendering){
 				return;
 			}
@@ -442,7 +445,7 @@ ShaderTool.modules.Renderer = (function(){
 			var frame = presenter.getPreviousFrame()
 			var resolution = presenter.getResolution()
 			var destination = presenter.getDestination()
-			var time = elapsed; //ms
+			var time = elapsedTime; //ms
 
 			this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
 			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2(resolution);
@@ -456,5 +459,102 @@ ShaderTool.modules.Renderer = (function(){
 	}
 
 	return new Renderer();
+})();
+
+// Presenter
+ShaderTool.modules.Presenter = (function(){
+	function Presenter(){}
+	Presenter.prototype = {
+
+		// TODO: All.
+		init: function(){
+			console.log('ShaderTool.modules.Presenter.init');
+
+			var fragmentSource = 'precision mediump float;\n';
+				fragmentSource += 'uniform sampler2D us2_source;\n';
+				fragmentSource += 'uniform float uf_time;\n';
+				fragmentSource += 'uniform vec2 uv2_resolution;\n';
+				fragmentSource += 'void main() {\n';
+				fragmentSource += '\tgl_FragColor = \n';
+				//vec4(gl_FragCoord.xy / uv2_resolution, sin(uf_time), 1.);\n';
+				fragmentSource += '\t\ttexture2D(us2_source, gl_FragCoord.xy / uv2_resolution);\n';
+				fragmentSource += '}\n';
+
+			this._vertexSource = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
+
+			this._program = ctx.createProgram({
+				vertex: this._vertexSource,
+				fragment: fragmentSource
+			});
+
+			this._source = {
+				program: this._program,
+				attributes: {
+					'av2_vtx': {
+						buffer: buffer,
+						size: 2,
+						type: ctx.AttribType.Float,
+						offset: 0
+					}
+				},
+				uniforms: {
+					'us2_source': ctx.UniformSampler(texture)
+				},
+				mode: ctx.Primitive.TriangleStrip,
+				count: 4
+			};
+
+			var resolution = null;
+			var texture = null;
+			var framebuffer = null;
+			var writepos = 0;
+		},
+
+		present: function ( elapsedTime ) {
+			if (!resolution) {
+				return;
+			}
+
+			writepos = (writepos + 1) & 1;
+
+			source.uniforms['uf_time'] = ctx.UniformFloat( elapsedTime );
+			source.uniforms['uv2_resolution'] = ctx.UniformVec2(resolution);
+			source.uniforms['us2_source'] = ctx.UniformSampler(texture[writepos]);
+
+			ctx.rasterize(source);
+		},
+		setResolution: function (width, height) {
+			if (!resolution) {
+
+				texture = [
+					ctx.createTexture().uploadEmpty(ctx.TextureFormat.RGBA_8, width, height),
+					ctx.createTexture().uploadEmpty(ctx.TextureFormat.RGBA_8, width, height)
+				];
+
+				framebuffer = [
+					ctx.createFramebuffer().attachColor(texture[1]),
+					ctx.createFramebuffer().attachColor(texture[0])
+				];
+
+			} else if (resolution[0] !== width || resolution[1] !== height) {
+
+				texture[0].uploadEmpty(ctx.TextureFormat.RGBA_8, width, height);
+				texture[1].uploadEmpty(ctx.TextureFormat.RGBA_8, width, height);
+
+			}
+			resolution = [width, height];
+		},
+		getPreviousFrame: function() {
+			return texture[writepos];
+		},
+		getResolution: function() {
+			return resolution;
+		},
+		getDestination: function() {
+			return { framebuffer: framebuffer[writepos] };
+		}
+	}
+
+	return new Presenter();
 })();
 // Elements
