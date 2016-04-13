@@ -1,30 +1,31 @@
 var ShaderTool = new (function ShaderTool(){
 
 	function catchReady(fn) {
-		if (document.readyState != 'loading'){
+		var L = 'loading';
+		if (document.readyState != L){
 			fn();
 		} else if (document.addEventListener) {
 			document.addEventListener('DOMContentLoaded', fn);
 		} else {
 			document.attachEvent('onreadystatechange', function() {
-				if (document.readyState != 'loading'){
+				if (document.readyState != L){
 					fn();
 				}	
 			});
 		}
 	}
 
-
 	this.VERSION = '0.01';
 
 	this.modules = {};
 	this.elements = {};
-	// this.utils = {};
 
 	var self = this;
 	catchReady(function(){
 		self.modules.Editor.init();
-	})
+		self.modules.Renderer.init();
+	});
+
 })();
 
 // Utils
@@ -83,9 +84,17 @@ ShaderTool.utils = {
             this.now = function(){ return +(new Date()) }
         }
         return this.now();
-    }
+    },
+    isFunction: function( object ){
+    	return typeof object == 'function';
+    },
+    // future methods:
+    isArray: function(){},
+    isArrayLike: function(){},
+    copyObject: function(){}
 };
 
+// Callback (Signal?)
 ShaderTool.utils.Callback = (function(){
 	// Callback == Signal ?
     function Callback() {
@@ -141,24 +150,59 @@ ShaderTool.utils.Callback = (function(){
 })();
 
 // Modules
+// Editor
 ShaderTool.modules.Editor = (function(){
 
 	function Editor(){}
 
 	Editor.prototype = {
 		init: function(){
+			console.log('ShaderTool.modules.Editor.init');
+
 			this.element = document.getElementById('editor');
 
 			this._editor = ace.edit(this.element);
-			this._editor.setTheme('ace/theme/solarized_light');
 			this._editor.getSession().setMode('ace/mode/glsl');
+
+			this._editor.$blockScrolling = Infinity;
 
 			this.onChange = new ShaderTool.utils.Callback();
 
-			this._editor.getSession().on('change', this.onChange.callShim );
-		}
+			var self = this;
+
+			// TODO: Add debounce
+			this._editor.on('change', function(){
+				self.onChange.call();
+			});
+		},
+		getValue: function(){
+			return this._editor.getValue();
+		},
+		setValue: function( value ){
+			this._editor.setValue( value );
+		},
+		clear: function(){
+			this.setValue('');
+		},
+		// future methods:
+		lock: function(){},
+		unlock: function(){},
+		load: function( url ){}
 	}
 
 	return new Editor();
+})();
+
+// Renderer
+ShaderTool.modules.Renderer = (function(){
+	function Renderer(){}
+
+	Renderer.prototype = {
+		init: function(){
+			console.log('ShaderTool.modules.Renderer.init');
+		}
+	}
+
+	return new Renderer();
 })();
 // Elements
