@@ -14,6 +14,7 @@ var ShaderTool = new (function ShaderTool(){
 		}
 	}
 
+
 	this.VERSION = '0.01';
 
 	this.modules = {};
@@ -22,10 +23,26 @@ var ShaderTool = new (function ShaderTool(){
 
 	var self = this;
 	catchReady(function(){
-		console.log(123)
+		self.modules.Editor.init();
 	})
 })();
 
 // Utils
 // Modules
+ShaderTool.modules.Editor = (function(){
+
+	function Editor(){}
+
+	Editor.prototype = {
+		init: function(){
+			this.element = document.getElementById('editor');
+
+			this._editor = ace.edit(this.element);
+			this._editor.setTheme('ace/theme/solarized_light');
+			this._editor.getSession().setMode('ace/mode/glsl');
+		}
+	}
+
+	return new Editor();
+})();
 // Elements
