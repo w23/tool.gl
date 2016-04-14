@@ -18,27 +18,14 @@ var ShaderTool = new (function ShaderTool(){
     this.VERSION = '0.01';
 
     this.modules = {};
-    this.elements = {};
+    this.classes = {};
 
     var self = this;
     catchReady(function(){
         self.modules.Ticker.init();
         self.modules.GUIHelper.init();
         self.modules.Editor.init();
-        // self.modules.Presenter.init();
-        // self.modules.Renderer.init();
         self.modules.Rendering.init();
-
-        /*
-        // Apply logic
-        // TODO: Move logic to Renderer
-        self.modules.Editor.onChange.add(function(){
-            var newValue = self.modules.Editor.getValue();
-
-            var uniforms = self.modules.Renderer.updateSource(newValue);
-            // self.modules.Controls.updateControls(uniforms);
-        });
-        */
 
         document.documentElement.className = '_ready';
     });
@@ -173,14 +160,14 @@ ShaderTool.utils.Callback = (function(){
             throw new TypeError('Callback handler must be function!');
         },
 
-        add: function(handler) {
+        add: function(handler, context) {
             if (typeof handler != 'function') {
                 this._throwError();
                 return;
             }
 
             this.remove(handler);
-            this._handlers.push(handler);
+            this._handlers.push({handler:handler, context: context});
         },
 
         remove: function(handler) {
@@ -191,7 +178,7 @@ ShaderTool.utils.Callback = (function(){
 
             var totalHandlers = this._handlers.length;
             for (var k = 0; k < totalHandlers; k++) {
-                if (handler === this._handlers[k]) {
+                if (handler === this._handlers[k].handler) {
                     this._handlers.splice(k, 1);
                     return;
                 }
@@ -201,8 +188,8 @@ ShaderTool.utils.Callback = (function(){
         call: function() {
             var totalHandlers = this._handlers.length;
             for (var k = 0; k < totalHandlers; k++) {
-                var handler = this._handlers[k];
-                handler.apply(null, arguments);
+                var handlerData = this._handlers[k];
+                handlerData.handler.apply(handlerData.context, arguments);
             }
         }
     };
@@ -215,16 +202,13 @@ ShaderTool.utils.Float32Array = (function(){
 })();
 
 // Modules
-/*
-ShaderTool.modules.WindowHelper = (function(){
-    function WindowHelper(){}
-})();
-*/
+
 // Ticker
 ShaderTool.modules.Ticker = (function(){
     var raf;
     var lastTime = 0;
     var vendors = ['ms', 'moz', 'webkit', 'o'];
+
     for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
         window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
         window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] || window[vendors[x]+'CancelRequestAnimationFrame'];
@@ -254,13 +238,15 @@ ShaderTool.modules.Ticker = (function(){
 
             this.onTick = new ShaderTool.utils.Callback();
 
-             var activeState = true;
-             var applyArgs = [];
+            var activeState = true;
+            var applyArgs = [];
             var listeners = [];
             var prevTime = ShaderTool.utils.now();
             var elapsedTime = 0;
             var timeScale = 1;
             var self = this;
+			var skippedFrames = 0;
+			var maxSkipFrames = 10;
 
             this.stop = this.pause = this.sleep = function(){
                 activeState = false;
@@ -282,14 +268,19 @@ ShaderTool.modules.Ticker = (function(){
             }
 
             function tickHandler( nowTime ){
+
                 var delta = (nowTime - prevTime) * timeScale;
                 prevTime = nowTime;
 
                 elapsedTime += delta;
 
-                if(activeState){
-                    self.onTick.call(delta, elapsedTime)
-                }
+            	if(skippedFrames < maxSkipFrames){
+            		skippedFrames++;
+            	} else {
+	                if(activeState){
+	                    self.onTick.call(delta, elapsedTime)
+	                }            		
+            	}
 
                 raf( tickHandler );
             }
@@ -360,131 +351,154 @@ ShaderTool.modules.Editor = (function(){
     return new Editor();
 })();
 
-/*
-// Renderer
-ShaderTool.modules.Renderer = (function(){
-    function Renderer(){}
-
-    Renderer.prototype = {
-        init: function(){
-            console.log('ShaderTool.modules.Renderer.init');
-
-            this.canvas = document.getElementById('glcanvas');
-
-            this._timeScale = 1;
-            this._rendering = false;
-
-            // TODO: Optimize
-            try{
-                // Passed object is a future settings for context     ↓
-                this._context = D3.createContextOnCanvas(this.canvas, {});
-
-            } catch ( e ){
-                ShaderTool.modules.GUIHelper.showError('Could not init D3.Context: ' + e)
-            }
-
-            this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
-            this._vertexSource = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
-            this._programm = null;
-
-            this._source = {
-                program: this._program,
-                attributes: {
-                    'av2_vtx': {
-                        buffer: this._buffer,
-                        size: 2,
-                        type: this._context.AttribType.Float,
-                        offset: 0
-                    }
-                },
-                uniforms: {},
-                mode: this._context.Primitive.TriangleStrip,
-                count: 4
-            };
-
-            ShaderTool.modules.Ticker.onTick.add(this.render, this);
-            this.startRendering();
-        },
-        startRendering: function(){
-            if(this._rendering){
-                return;
-            }
-            this._rendering = true;
-        },
-        stopRendering: function(){
-            if(!this._rendering){
-                return;
-            }
-            this._rendering = false;
-        },
-        updateSource: function( fragmentSource ){ // ← Add vertexSource here?
-            var newProgram = this._context.createProgram({
-                vertex: this._vertexSource,
-                fragment: fragmentSource
-            });
-            this._source.program = newProgram;
-
-            var unimatch = /^\s*uniform\s+(float|vec2|vec3|vec4)\s+([a-zA-Z]*[-_a-zA-Z0-9]).*\/\/(slide|color)({.*})/gm;
-            var uniforms = [];
-        },
-        render: function( delta, elapsedTime ){
-            if(!this._rendering){
-                return;
-            }
-
-            if (this.canvas.clientWidth !== this.canvas.width ||
-                this.canvas.clientHeight !== this.canvas.height) {
-
-                var pixelFactor = window.devicePixelRatio;
-
-                this.canvas.width = this.canvas.clientWidth * pixelFactor;
-                this.canvas.height = this.canvas.clientHeight * pixelFactor;
-
-                presenter.setResolution(this.canvas.width, this.canvas.height);
-            }
-
-            // TODO: Optimize
-            var frame = presenter.getPreviousFrame()
-            var resolution = presenter.getResolution()
-            var destination = presenter.getDestination()
-            var time = elapsedTime; //ms
-
-            this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
-            this._source.uniforms['uv2_resolution'] = this._context.UniformVec2(resolution);
-            this._source.uniforms['uf_time'] = this._context.UniformFloat(time);
-            this._context.rasterize(source, null, destination);
-
-            presenter.present(time);
-
-            console.log('render')
-        }
-    }
-
-    return new Renderer();
-})();
-
-
-*/
 ShaderTool.modules.Rendering = (function(){
+		
+	var VERTEX_SOURCE = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
+
 	function Rendering(){}
 	Rendering.prototype = {
 		init: function(){
 			console.log('ShaderTool.modules.Rendering.init');
+
+			this._canvas = document.getElementById('glcanvas');
+			this._context = D3.createContextOnCanvas(this._canvas);
+
+			var fragmentSource = 'precision mediump float;\n';
+				fragmentSource += 'uniform sampler2D us2_source;\n';
+				fragmentSource += 'uniform float uf_time;\n';
+				fragmentSource += 'uniform vec2 uv2_resolution;\n';
+				fragmentSource += 'void main() {\n';
+				fragmentSource += '\tgl_FragColor = \n';
+				//vec4(gl_FragCoord.xy / uv2_resolution, sin(uf_time), 1.);\n';
+				fragmentSource += '\t\ttexture2D(us2_source, gl_FragCoord.xy / uv2_resolution);\n';
+				fragmentSource += '}\n';
+
+			this._program = this._context.createProgram({
+				vertex: VERTEX_SOURCE,
+				fragment: fragmentSource
+			});
+
+			this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
+
+			this._resolution = null;
+			this._texture = null;
+			this._framebuffer = null;
+			this._writePosition = 0;
+
+			this._source = {
+				program: this._program,
+				attributes: {
+					'av2_vtx': {
+						buffer: this._buffer,
+						size: 2,
+						type: this._context.AttribType.Float,
+						offset: 0
+					}
+				},
+				uniforms: {
+					'us2_source': this._context.UniformSampler(this._texture)
+				},
+				mode: this._context.Primitive.TriangleStrip,
+				count: 4
+			};
+
+			this._rasterizers = [];
+			this._rasterizers.push(new ShaderTool.classes.Rasterizer( this._context ));
+
+			this._updateSource();
+			ShaderTool.modules.Editor.onChange.add(this._updateSource, this);
+
+			ShaderTool.modules.Ticker.onTick.add(this._render, this);
+		},
+		_updateSource: function(){
+			var source = ShaderTool.modules.Editor.getValue();
+
+			var totalRasterizers = this._rasterizers.length;
+			for(var k=0; k<totalRasterizers; k++){
+				var rasterizer = this._rasterizers[k];
+
+				rasterizer.updateSource(source);
+			}
+		},
+		_setResolution: function (width, height) {
+			if (!this._resolution) {
+				this._texture = [
+					this._context.createTexture().uploadEmpty(this._context.TextureFormat.RGBA_8, width, height),
+					this._context.createTexture().uploadEmpty(this._context.TextureFormat.RGBA_8, width, height)
+				];
+				framebuffer = [
+					this._context.createFramebuffer().attachColor(this._texture[1]),
+					this._context.createFramebuffer().attachColor(this._texture[0])
+				];
+			} else if (this._resolution[0] !== width || this._resolution[1] !== height) {
+				this._texture[0].uploadEmpty(this._context.TextureFormat.RGBA_8, width, height);
+				this._texture[1].uploadEmpty(this._context.TextureFormat.RGBA_8, width, height);
+			}
+
+			this._resolution = [width, height];
+		},
+		_getPreviousFrame: function () {
+			return this._texture[this._writePosition];
+		},
+		_getResolution: function () {
+			return this._resolution;
+		},
+		_getDestination: function () {
+			return { framebuffer: framebuffer[this._writePosition] };
+		},	
+		_render: function( delta, elapsedTime ){
+
+			// To seconds:
+			delta = delta * 0.001;
+			elapsedTime = elapsedTime * 0.001;
+
+			if (this._canvas.clientWidth !== this._canvas.width ||
+				this._canvas.clientHeight !== this._canvas.height) {
+
+				var pixelFactor = window.devicePixelRatio || 1;
+
+				this._canvas.width = this._canvas.clientWidth * pixelFactor;
+				this._canvas.height = this._canvas.clientHeight * pixelFactor;
+
+				this._setResolution(this._canvas.width, this._canvas.height);
+			}
+
+			var previosFrame = this._getPreviousFrame();
+			var resolution = this._getResolution();
+			var destination = this._getDestination();
+
+			var totalRasterizers = this._rasterizers.length;
+			for(var k=0; k<totalRasterizers; k++){
+				var rasterizer = this._rasterizers[k];
+
+				rasterizer.render(elapsedTime, previosFrame, resolution, destination);
+			}
+			
+			if (!this._resolution) {
+				return;
+			}
+
+			this._writePosition = (this._writePosition + 1) & 1;
+
+			this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime );
+			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2( this._resolution );
+			this._source.uniforms['us2_source'] = this._context.UniformSampler(this._texture[this._writePosition]);
+			this._context.rasterize(this._source);
 		}
 	}
 
 	return new Rendering();
 })();
 
-// Elements
-ShaderTool.elements.Rasterizer = (function(){
+// classes
+ShaderTool.classes.Rasterizer = (function(){
 	var VERTEX_SOURCE = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
 
 	function Rasterizer( context ){
 		this._context = context;
 
 		this._program = null;
-		this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.util.Float32Array([1,-1,1,1,-1,-1,-1,1]));
+		this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
 
 		this._source = {
 			program: this._program,
@@ -507,7 +521,7 @@ ShaderTool.elements.Rasterizer = (function(){
 				vertex: VERTEX_SOURCE,
 				fragment: fragmentSource
 			});
-			source.program = newProgram;
+			this._source.program = newProgram;
 
 			/*
 			var unimatch = /^\s*uniform\s+(float|vec2|vec3|vec4)\s+([a-zA-Z]*[-_a-zA-Z0-9]).*\/\/(slide|color)({.*})/gm;
@@ -551,12 +565,12 @@ ShaderTool.elements.Rasterizer = (function(){
 
 			return uniforms;*/
 		},
-		render: function (time, frame, resolution, destination) {
+		render: function ( elapsedTime, frame, resolution, destination) {
 			this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
 
 			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2(resolution);
 
-			this._source.uniforms['uf_time'] = this._context.UniformFloat(time);
+			this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime);
 
 			this._context.rasterize(this._source, null, destination);
 		}
