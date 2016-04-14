@@ -189,7 +189,7 @@ ShaderTool.utils.Callback = (function(){
             var totalHandlers = this._handlers.length;
             for (var k = 0; k < totalHandlers; k++) {
                 var handlerData = this._handlers[k];
-                handlerData.handler.apply(handlerData.context, arguments);
+                handlerData.handler.apply(handlerData.context || null, arguments);
             }
         }
     };
@@ -246,7 +246,7 @@ ShaderTool.modules.Ticker = (function(){
             var timeScale = 1;
             var self = this;
 			var skippedFrames = 0;
-			var maxSkipFrames = 10;
+			var maxSkipFrames = 3;
 
             this.stop = this.pause = this.sleep = function(){
                 activeState = false;
@@ -330,14 +330,14 @@ ShaderTool.modules.Editor = (function(){
 
             // TODO: Add debounce
             this._editor.on('change', function(){
-                self.onChange.call();
+            	self.onChange.call();
             });
         },
         getValue: function(){
-            return this._editor.getValue();
+            return this._editor.getSession().getValue();
         },
         setValue: function( value ){
-            this._editor.setValue( value );
+            this._editor.getSession().setValue( value );
         },
         clear: function(){
             this.setValue('');
@@ -498,6 +498,7 @@ ShaderTool.classes.Rasterizer = (function(){
 		this._context = context;
 
 		this._program = null;
+		this._prevProgram = null;
 		this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
 
 		this._source = {
@@ -517,11 +518,25 @@ ShaderTool.classes.Rasterizer = (function(){
 	}
 	Rasterizer.prototype = {
 		updateSource: function (fragmentSource) {
-			var newProgram = this._context.createProgram({
-				vertex: VERTEX_SOURCE,
-				fragment: fragmentSource
-			});
-			this._source.program = newProgram;
+			var savePrevProgramFlag = true;
+			try{
+				var newProgram = this._context.createProgram({
+					vertex: VERTEX_SOURCE,
+					fragment: fragmentSource
+				});
+				this._source.program = newProgram;
+			} catch( e ){
+				console.log('Error updating Rasterizer fragmentSource: ' + e);
+				savePrevProgramFlag = false;
+
+				if(this._prevProgram){
+					this._source.program = this._prevProgram;
+				}
+			}
+
+			if(savePrevProgramFlag){
+				this._prevProgram = newProgram;
+			}
 
 			/*
 			var unimatch = /^\s*uniform\s+(float|vec2|vec3|vec4)\s+([a-zA-Z]*[-_a-zA-Z0-9]).*\/\/(slide|color)({.*})/gm;
