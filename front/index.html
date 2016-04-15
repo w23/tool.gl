@@ -8,19 +8,20 @@
 <body>
 	<div class="wrapper">
 
+		<!--
 		<header class="navbar">
 			<div class="container">
 				<div class="navbar__logo logo">ShaderTool<span class="logo__small">beta</span></div>
 			</div>
 		</header>
+		-->
 
 		<div class="container _100p">
 			<div class="content">
 				<div class="content__cols">
 					<div class="content__col canvas">
-						<!-- <img class="img-responsive" src="img/canvas-tmp.jpg" /> -->
-						<canvas id="glcanvas" width="960" height="540" class="img-responsive glcanvas">Your browser does not support canvas :(</canvas>
-						<div>
+						<canvas id="glcanvas" width="960" height="540" class="glcanvas">Your browser does not support canvas :(</canvas>
+						<div class="controls">
 							TODO:
 							<ul>
 								<li>Add navbar menus / icons / social buttons</li>
@@ -95,18 +96,18 @@ vec3 enlightDir(in vec3 n, in vec3 ed, in vec3 ld, in vec3 lc, in vec3 dc, in ve
 void main() {
 	vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
 	uv.x *= uv2_resolution.x / uv2_resolution.y;
-	
+
 	vec3 O = vec3(0., 0., 2.6);
 	vec3 D = normalize(vec3(uv, -2.));
-	
+
 	float l = trace(O, D, 0.);
 	vec3 p = O + D * l;
-	
+
 	vec3 color = vec3(0.);
-	
+
 	if (l < 10.)
 		color += enlightDir(N(p), D, normalize(vec3(1.)), vec3(1.), color1.rgb, vec4(1., 1., 1., max(1., pow(slide, 3.))));
-	
+
 	gl_FragColor = vec4(pow(color, vec3(.7)), 1.);
 }
 						</pre>
@@ -115,6 +116,7 @@ void main() {
 			</div>
 		</div>
 
+		<!--
 		<footer class="footer">
 			<div class="container">
 				<a href="https://github.com/w23/tool.gl" target="_blank" class="github-link">
@@ -123,10 +125,11 @@ void main() {
 				</a>
 			</div>
 		</footer>
+		-->
 
 	</div><!-- .wrapper -->
-	<script src="js/vendor/d3.js"></script>
-	<script src="js/vendor/ace.js"></script>
+	<script src="js/vendor/0.3js/D3.js"></script>
+	<script src="js/vendor/ace-builds/src-min/ace.js"></script>
 	<script src="js/vendor/mode-glsl.js"></script>
 	<!-- <script src="js/vendor/theme-solarized_light.js"></script> -->
 	<script src="js/shadertool.js"></script>

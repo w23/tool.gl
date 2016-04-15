@@ -1,6 +1,6 @@
 [submodule "front/0.3js"]
-	path = front/0.3js
+	path = front/js/vendor/0.3js
 	url = https://github.com/w23/0.3js
 [submodule "front/ace-builds"]
-	path = front/ace-builds
+	path = front/js/vendor/ace-builds
 	url = https://github.com/ajaxorg/ace-builds.git
