@@ -79,6 +79,9 @@ body {
 		box-sizing: border-box;
 		height: 100%;
 	}
+	.content__col.canvas {
+		overflow: hidden;
+	}
 	.content__editor {
 		height: 100%;
 		outline: 1px solid #CCC;
@@ -146,10 +149,7 @@ body {
 	background-color: #DCDCDC;
 	width: 100%;
 	height: 50%;
-}
-
-.controls {
-	padding: 20px;
+	display: block;
 }
 
 .footer {
@@ -161,19 +161,94 @@ body {
 	background-color: #222;
 }
 
-.inline {
-	display: inline-block;
+.button {
+	position: relative;
+	background-repeat: no-repeat;
+	background: rgba(0, 0, 0, 0.35);
+	cursor: pointer;
+	height: 20px;
+	color: #fff;
+	padding: 0 10px;
+	box-sizing: border-box;
+	font-size: 12px;
+	line-height: 20px;
+	-ms-user-select: none;
+	-moz-user-select: none;
+	-webkit-user-select: none;
+	user-select: none;
+	transition: background 0.35s ease-out;
+	text-align: center;
 }
+	.button:hover {
+		background-color: rgba(0, 0, 0, 0.5);
+		transition: none;
+	}
+	.button:active {
+		background-color: rgba(0, 0, 0, 0.6);
+	}
+	.button._remove {
+		width: 22px;
+		padding: 0;
+	}
 
-.controls-top {
+.controls {
+	padding: 20px;
+	height: 50%;
+	overflow: auto;
+	margin-right: 1px;
+	box-sizing: border-box;
 }
-	.controls-top__globals {
+	.controls__row {
+		position: relative;
+		margin: 0 -4px 30px;
+		width: 370px;
+		font-size: 0;
+	}
+	.controls__row > * {
+		display: inline-block;
+		vertical-align: top;
+		/*margin: 0 4px;*/
+	}
+	.controls__row._top {
+		margin-bottom: 30px;
+		width: 100%;
+	}
+
+.controls-row {
+}
+	.controls-row__globals, .controls-row__add {
+		margin: 0 -4px;
+	}
+	.controls-row__globals > *, .controls-row__add > * {
+		margin: 0 4px;
+		display: inline-block;
+	}
+	.controls-row__globals {
 		float: left;
 	}
-	.controls-top__add {
+	.controls-row__add {
 		float: right;
 	}
-
+	.controls-row__control-name {
+		font-size: 12px;
+		color: #333;
+		line-height: 20px;
+		margin-left: 1px;
+		width: 60px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		overflow: hidden;
+		margin-right: 15px;
+	}
+	.controls-row__control {
+		margin-bottom: 15px;
+	}
+	.controls-row__remove {
+		position: absolute;
+		right: -15px;
+		top: 0;
+		/*margin-left: 15px;*/
+	}
 
 .controls__group {
 	position: relative;
@@ -194,39 +269,24 @@ body {
 	cursor: pointer;
 	color: #222;
 	box-sizing: border-box;
-}
-	.control._locked {
-		pointer-events: none;
-		color: #999999;
-	}
-
-/* TODO: Use Base64 for icons here */
-.button {
-	position: relative;
-	background-repeat: no-repeat;
-	background: rgba(0, 0, 0, 0.35);
-	cursor: pointer;
-	height: 20px;
-	color: #fff;
-	padding: 0 10px;
-	box-sizing: border-box;
-	vertical-align: top;
-	font-size: 12px;
-	line-height: 20px;
 	-ms-user-select: none;
 	-moz-user-select: none;
 	-webkit-user-select: none;
 	user-select: none;
 	transition: background 0.35s ease-out;
-	margin: 0 4px;
 }
-	.button:hover {
-		background-color: rgba(0, 0, 0, 0.5);
+	.control:hover {
+		background: rgba(0, 0, 0, 0.25);
 		transition: none;
 	}
-	.button:active {
-		background-color: rgba(0, 0, 0, 0.6);
+	.control:active {
+		background: rgba(0, 0, 0, 0.35);
 	}
+	.control._locked {
+		pointer-events: none;
+		color: #999999;
+	}
+
 
 
 .control._play:before{ content: ">"; }
@@ -244,16 +304,14 @@ body {
 	font-size: 12px;
 	line-height: 20px;
 	padding: 0 10px;
-	margin: 0 4px;
 	box-sizing: border-box;
 }
 
 .i-text {
 	height: 20px;
-	border: 1px solid #aaa;
+	border: 1px solid rgba(0, 0, 0, 0.35);
 	box-sizing: border-box;
 	padding: 0 8px;
-	margin: 0 4px;
 }
 
 .i-select {
@@ -261,16 +319,67 @@ body {
 	border-radius: none;
 	border: none;
 	background-color: #fff;
-	border: 1px solid #aaa;
-	margin: 0 4px;
-	vertical-align: top;
+	border: 1px solid rgba(0, 0, 0, 0.35);
+	transition: border-color 0.35s ease-out;
 }
 
-.i-text:focus, .i-select:focus {
-	border-color: #999;
+.i-color {
+	height: 20px;
+	line-height: 20px;
+	border: 1px solid rgba(0, 0, 0, 0.35);
+	background-color: #fff;
+	box-sizing: border-box;
+}
+
+.i-range {
+	position: relative;
+	margin-top: 0;
+	margin-bottom: 0;
+	height: 20px;
+	line-height: 20px;
+}
+
+.i-text:focus, .i-select:focus, .i-color:focus {
+	border-color: rgba(0, 0, 0, 0.45);
 	outline: none;
 }
 
-.controls-top {
-	font-size: 0;
+.i-range:focus {
+	outline: none;
 }
+
+.control-float {
+}
+	.control-float > * {
+		display: inline-block;
+		vertical-align: top;
+	}
+	.control-float__min, .control-float__max {
+		width: 50px;
+	}
+	.control-float__min {
+		margin-right: 4px;
+	}
+	.control-float__max {
+		margin-left: 4px;
+	}
+	.control-float__range {
+		margin: 0 4px;
+	}
+
+.control-color {
+}
+	.control-color > * {
+		display: inline-block;
+		vertical-align: top;
+		margin: 0 4px;
+	}
+	.control-color__alpha-label {
+		font-size: 12px;
+		line-height: 20px;
+		color: #333;
+		margin-left: 12px;
+	}
+	.control-color__input {
+		/*margin: 0 auto;*/
+	}
