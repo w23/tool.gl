@@ -4,6 +4,37 @@
 	<meta charset="UTF-8" />
 	<title>ShaderTool</title>
 	<link rel="stylesheet" href="css/main.css" />
+	<style>
+		.controls__group {
+			position: relative;
+			width: 100%;
+			min-height: 30px;
+		}
+		.control {
+			position: relative;
+			float: left;
+			margin: 5px;
+			min-width: 20px;
+			min-height: 20px;
+			color: #000000;
+			line-height: 20px;
+			font-size: 11px;
+			text-align: center;
+		}
+		.control._locked{
+			pointer-events: none;
+			color: #999999;
+		}
+		/* TODO: Use Base64 for icons here */
+		.control.button {
+			cursor: pointer;
+			background-repeat: no-repeat;
+			background: rgba(0, 0, 0, 0.15);
+		}
+		.control.button._play:before{ content: ">"; }
+		.control.button._pause:before{ content: "||"; }
+		.control.button._rewind:before{ content: "R"; }
+	</style>
 </head>
 <body>
 	<div class="wrapper">
@@ -22,16 +53,42 @@
 					<div class="content__col canvas">
 						<canvas id="glcanvas" width="960" height="540" class="glcanvas">Your browser does not support canvas :(</canvas>
 						<div class="controls">
-							TODO:
-							<ul>
-								<li>Add navbar menus / icons / social buttons</li>
-								<li>Add canvas control panel (play / pause / fullscreen etc)</li>
-								<li>Add controls block here</li>
-								<li>Add switch-view icon</li>
-								<li>Add layout resize option</li>
-								<li>Add program tree viewer?</li>
-								<li>Add footer contents</li>
-							</ul>
+							<!-- global controls -->
+							<!-- play/pause button -->
+							<!-- rewind button -->
+							<!-- timescale range -->
+							<!-- canvas width -->
+							<!-- canvas height -->
+							<!-- scene time, seconds -->
+							<div class="controls__group">
+								<div id="global-controls-play"			class="control button _play"	title="Play"></div>
+								<div id="global-controls-pause"			class="control button _pause"	title="Pause"></div>
+								<div id="global-controls-rewind"		class="control button _rewind"	title="Rewind"></div>
+								<input id="global-controls-timescale"	class="control range"			title="Time scale" type="range"/>
+								<div id="global-controls-render-width"	class="control label _locked"	title="Render width">550</div>
+								<div id="global-controls-render-height"	class="control label _locked"	title="Render height">350</div>
+								<div id="global-controls-scene-time"	class="control label _locked"	title="Scene time">117.65</div>
+							</div>
+
+							<!-- Этот блок наверное справа поставим? -->
+							<div class="controls__group">
+								<input class="control" id="" type="text" label="uniform name"/>
+								<select class="control" id="" name="" >
+									<option>float</option>
+									<option>vec2</option>
+									<option>vec3</option>
+									<option>vec4</option>
+									<option>color3 (RGB)</option>
+									<option>color4 (RGBA)</option>
+								</select>
+								<div class="control button _create" title="Create uniform">Create!</div>
+							</div>
+
+							<div class="controls__container">
+								<!-- Сюда будут помещаться блоки с настройками юниформов -->
+								<input type="color" />
+							</div>
+
 						</div>
 					</div>
 					<div class="content__col">

@@ -24,6 +24,7 @@ var ShaderTool = new (function ShaderTool(){
     catchReady(function(){
         self.modules.Ticker.init();
         self.modules.GUIHelper.init();
+        self.modules.Controls.init();
         self.modules.Editor.init();
         self.modules.Rendering.init();
 
@@ -490,6 +491,31 @@ ShaderTool.modules.Rendering = (function(){
 	return new Rendering();
 })();
 
+// Controls
+ShaderTool.modules.Controls = (function(){
+    function Controls(){}
+    Controls.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.Controls.init');
+
+            this._controls = [];
+
+            this._initSceneControls();
+        },
+        _initSceneControls: function(){
+            var playButton = document.getElementById('global-controls-play');
+            var pauseButton = document.getElementById('global-controls-pause');
+            var rewindButton = document.getElementById('global-controls-rewind');
+            var timescaleLabel = document.getElementById('global-controls-timescale');
+            var renderWidthLabel = document.getElementById('global-controls-render-width');
+            var renderHeightLabel = document.getElementById('global-controls-render-height');
+            var sceneTimeLabel = document.getElementById('global-controls-scene-time');
+        }
+    }
+    return new Controls();
+})();
+
+
 // classes
 ShaderTool.classes.Rasterizer = (function(){
 	var VERTEX_SOURCE = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
@@ -582,13 +608,32 @@ ShaderTool.classes.Rasterizer = (function(){
 		},
 		render: function ( elapsedTime, frame, resolution, destination) {
 			this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
-
 			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2(resolution);
-
 			this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime);
-
 			this._context.rasterize(this._source, null, destination);
 		}
 	}
 	return Rasterizer;
+})();
+
+// Controls
+ShaderTool.classes.RangeSelect = (function(){
+    function RangeSelect(){
+        this.DOMElement = document.createElement('select');
+        this.DOMElement.setAttribute('type', 'range');
+    }
+    RangeSelect.prototype = {}
+    return RangeSelect;
+})();
+
+ShaderTool.classes.RGBSelect = (function(){
+    function RGBSelect(){}
+    RGBSelect.prototype = {}
+    return RGBSelect;
+})();
+
+ShaderTool.classes.RGBASelect = (function(){
+    function RGBASelect(){}
+    RGBASelect.prototype = {}
+    return RGBASelect;
 })();
