@@ -5,35 +5,7 @@
 	<title>ShaderTool</title>
 	<link rel="stylesheet" href="css/main.css" />
 	<style>
-		.controls__group {
-			position: relative;
-			width: 100%;
-			min-height: 30px;
-		}
-		.control {
-			position: relative;
-			float: left;
-			margin: 5px;
-			min-width: 20px;
-			min-height: 20px;
-			color: #000000;
-			line-height: 20px;
-			font-size: 11px;
-			text-align: center;
-		}
-		.control._locked{
-			pointer-events: none;
-			color: #999999;
-		}
-		/* TODO: Use Base64 for icons here */
-		.control.button {
-			cursor: pointer;
-			background-repeat: no-repeat;
-			background: rgba(0, 0, 0, 0.15);
-		}
-		.control.button._play:before{ content: ">"; }
-		.control.button._pause:before{ content: "||"; }
-		.control.button._rewind:before{ content: "R"; }
+
 	</style>
 </head>
 <body>
@@ -53,44 +25,39 @@
 					<div class="content__col canvas">
 						<canvas id="glcanvas" width="960" height="540" class="glcanvas">Your browser does not support canvas :(</canvas>
 						<div class="controls">
-							<!-- global controls -->
-							<!-- play/pause button -->
-							<!-- rewind button -->
-							<!-- timescale range -->
-							<!-- canvas width -->
-							<!-- canvas height -->
-							<!-- scene time, seconds -->
-							<div class="controls__group">
-								<div id="global-controls-play"			class="control button _play"	title="Play"></div>
-								<div id="global-controls-pause"			class="control button _pause"	title="Pause"></div>
-								<div id="global-controls-rewind"		class="control button _rewind"	title="Rewind"></div>
-								<input id="global-controls-timescale"	class="control range"			title="Time scale" type="range"/>
-								<div id="global-controls-render-width"	class="control label _locked"	title="Render width">550</div>
-								<div id="global-controls-render-height"	class="control label _locked"	title="Render height">350</div>
-								<div id="global-controls-scene-time"	class="control label _locked"	title="Scene time">117.65</div>
-							</div>
+							<div class="controls__top controls-top clearfix">
+								<div class="controls-top__globals">
+									<div id="global-controls-play"			class="control _play"	title="Play"></div>
+									<div id="global-controls-pause"			class="control _pause"	title="Pause"></div>
+									<div id="global-controls-rewind"		class="control _rewind"	title="Rewind"></div>
+									<input id="global-controls-timescale"	class="control range"			title="Time scale" type="range"/>
+									<div id="global-controls-render-width"	class="label _locked"	title="Render width">550</div>
+									<div id="global-controls-render-height"	class="label _locked"	title="Render height">350</div>
+									<div id="global-controls-scene-time"	class="label _locked"	title="Scene time">117.65</div>
+								</div>
+								<div class="controls-top__add controls-add inline">
+									<input class="controls-add__input i-text" id="" type="text" label="uniform name" placeholder="Uniform name" />
+									<select class="controls-add__select i-select inline" id="" name="" >
+										<option>float</option>
+										<option>vec2</option>
+										<option>vec3</option>
+										<option>vec4</option>
+										<option>color3 (RGB)</option>
+										<option>color4 (RGBA)</option>
+									</select>
+									<div class="controls-add__button button _create inline" title="Create uniform">Create!</div>
+								</div>
 
-							<!-- Этот блок наверное справа поставим? -->
-							<div class="controls__group">
-								<input class="control" id="" type="text" label="uniform name"/>
-								<select class="control" id="" name="" >
-									<option>float</option>
-									<option>vec2</option>
-									<option>vec3</option>
-									<option>vec4</option>
-									<option>color3 (RGB)</option>
-									<option>color4 (RGBA)</option>
-								</select>
-								<div class="control button _create" title="Create uniform">Create!</div>
-							</div>
+							</div><!-- .controls__row._top -->
 
 							<div class="controls__container">
-								<!-- Сюда будут помещаться блоки с настройками юниформов -->
-								<input type="color" />
+								<div class="controls__row">
+
+								</div>
 							</div>
 
-						</div>
-					</div>
+						</div><!-- .controls -->
+					</div><!-- .content__col -->
 					<div class="content__col">
 						<pre id="editor" class="content__editor editor">
 precision mediump float;
@@ -151,21 +118,21 @@ vec3 enlightDir(in vec3 n, in vec3 ed, in vec3 ld, in vec3 lc, in vec3 dc, in ve
 }
 
 void main() {
-	vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
-	uv.x *= uv2_resolution.x / uv2_resolution.y;
+	//vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
+	//uv.x *= uv2_resolution.x / uv2_resolution.y;
 
-	vec3 O = vec3(0., 0., 2.6);
-	vec3 D = normalize(vec3(uv, -2.));
+	//vec3 O = vec3(0., 0., 2.6);
+	//vec3 D = normalize(vec3(uv, -2.));
 
-	float l = trace(O, D, 0.);
-	vec3 p = O + D * l;
+	//float l = trace(O, D, 0.);
+	//vec3 p = O + D * l;
 
-	vec3 color = vec3(0.);
+	//vec3 color = vec3(0.);
 
-	if (l < 10.)
-		color += enlightDir(N(p), D, normalize(vec3(1.)), vec3(1.), color1.rgb, vec4(1., 1., 1., max(1., pow(slide, 3.))));
+	//if (l < 10.)
+	//	color += enlightDir(N(p), D, normalize(vec3(1.)), vec3(1.), color1.rgb, vec4(1., 1., 1., max(1., pow(slide, 3.))));
 
-	gl_FragColor = vec4(pow(color, vec3(.7)), 1.);
+	//gl_FragColor = vec4(pow(color, vec3(.7)), 1.);
 }
 						</pre>
 					</div>
