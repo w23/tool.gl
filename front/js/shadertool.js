@@ -527,6 +527,9 @@ ShaderTool.modules.ControlsFactory = (function(){
             console.log('ShaderTool.modules.ControlsFactory.init');
             // 
         },
+        getUniforms: function(){
+
+        },
         create: function( type, handler ){
             if(type == ControlsFactory.FLOAT){
                 return this._createFloat( handler );
