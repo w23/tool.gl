@@ -218,7 +218,7 @@ body {
 .controls-row {
 }
 	.controls-row__globals, .controls-row__add {
-		margin: 0 -4px;
+		/*margin: 0 -4px;*/
 	}
 	.controls-row__globals > *, .controls-row__add > * {
 		margin: 0 4px;
@@ -235,12 +235,24 @@ body {
 		color: #333;
 		line-height: 20px;
 		margin-left: 1px;
-		width: 60px;
+		/*width: 60px;*/
+		width: 15%;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 		overflow: hidden;
 		margin-right: 15px;
 	}
+	.controls-row__control-area {
+		width: 75%;
+	}
+	@media screen and (max-width: 1240px) {
+		.controls-row__control-area {
+			width: 70%;
+		}
+	}
+		.controls-row__control-area._width_auto {
+			width: auto;
+		}
 	.controls-row__control {
 		margin-bottom: 15px;
 	}
@@ -248,7 +260,9 @@ body {
 		/*position: absolute;*/
 		/*right: -15px;*/
 		/*top: 0;*/
-		margin-left: 15px;
+		/*margin-left: 15px;*/
+		/*margin-left: 5%;*/
+		float: right;
 	}
 
 .controls-add {
@@ -365,7 +379,8 @@ body {
 		vertical-align: top;
 	}
 	.control-float__min, .control-float__max {
-		width: 50px;
+		/*width: 50px;*/
+		width: 10%;
 	}
 	.control-float__min {
 		margin-right: 4px;
@@ -375,7 +390,7 @@ body {
 	}
 	.control-float__range {
 		margin: 0 4px;
-		width: 568px;
+		width: 80%;
 	}
 
 .control-color {
@@ -383,18 +398,20 @@ body {
 	.control-color > * {
 		display: inline-block;
 		vertical-align: top;
-		margin: 0 4px;
+		/*margin: 0 4px;*/
 	}
 	.control-color__alpha-label {
 		font-size: 12px;
 		line-height: 20px;
 		color: #333;
 		margin-left: 12px;
+		width: 10%;
 	}
 	.control-color__input {
-		/*margin: 0 auto;*/
+		width: 10%;
+		/*min-width: 50px;*/
 	}
 	.control-color__range {
-		width: 573px;
+		width: 80%;
 	}
 
