@@ -24,6 +24,7 @@ var ShaderTool = new (function ShaderTool(){
     catchReady(function(){
         self.modules.Ticker.init();
         self.modules.GUIHelper.init();
+        self.modules.ControlsFactory.init();
         self.modules.Controls.init();
         self.modules.Editor.init();
         self.modules.Rendering.init();
@@ -519,6 +520,60 @@ ShaderTool.modules.Controls = (function(){
     return new Controls();
 })();
 
+ShaderTool.modules.ControlsFactory = (function(){
+    function ControlsFactory(){}
+    ControlsFactory.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.ControlsFactory.init');
+            // 
+        },
+        create: function( type, handler ){
+            if(type == ControlsFactory.FLOAT){
+                return this._createFloat( handler );
+            } else if(type == ControlsFactory.VEC2){
+                return this._createVec2( handler );
+            } else if(type == ControlsFactory.VEC3){
+                return this._createVec3( handler );
+            } else if(type == ControlsFactory.VEC4){
+                return this._createVec4( handler );
+            } else if(type == ControlsFactory.COLOR3){
+                return this._createColor3( handler );
+            } else if(type == ControlsFactory.COLOR4){
+                return this._createColor4( handler );
+            } else {
+                throw new ShaderTool.Exception('Unknown uniform control type: ' + type);
+                return null;
+            }
+        },
+        _createFloat: function( handler ){
+
+        },
+        _createVec2: function( handler ){
+
+        },
+        _createVec3: function( handler ){
+
+        },
+        _createVec4: function( handler ){
+
+        },
+        _createColor3: function( handler ){
+
+        },
+        _createColor4: function( handler ){
+
+        }
+    }
+
+    ControlsFactory.FLOAT = 'float';
+    ControlsFactory.VEC2 = 'vec2';
+    ControlsFactory.VEC3 = 'vec3';
+    ControlsFactory.VEC4 = 'vec4';
+    ControlsFactory.COLOR3 = 'color3';
+    ControlsFactory.COLOR4 = 'color4';
+
+    return new ControlsFactory();
+})();
 
 // classes
 ShaderTool.classes.Rasterizer = (function(){
@@ -576,26 +631,4 @@ ShaderTool.classes.Rasterizer = (function(){
 		}
 	}
 	return Rasterizer;
-})();
-
-// Controls
-ShaderTool.classes.RangeSelect = (function(){
-    function RangeSelect(){
-        this.DOMElement = document.createElement('select');
-        this.DOMElement.setAttribute('type', 'range');
-    }
-    RangeSelect.prototype = {}
-    return RangeSelect;
-})();
-
-ShaderTool.classes.RGBSelect = (function(){
-    function RGBSelect(){}
-    RGBSelect.prototype = {}
-    return RGBSelect;
-})();
-
-ShaderTool.classes.RGBASelect = (function(){
-    function RGBASelect(){}
-    RGBASelect.prototype = {}
-    return RGBASelect;
 })();
