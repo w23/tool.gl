@@ -556,19 +556,19 @@ ShaderTool.modules.UniformControls = (function(){
 
             var self = this;
             setTimeout(function(){
-                self.create(UniformControls.FLOAT);
+                self._createControl('myFloat1', UniformControls.FLOAT);
             }, 500)
         },
         getUniformsCode: function(){
-            var result = '';
+            var result = [];
             var totalControls = this._controls.length;
             for(var k=0; k<totalControls; k++){
                 var control = this._controls[k];
-                result += control.getUniformCode() + '\n';
+                result.push(control.getUniformCode());
             }
-            return result;
+            return result.join('\n');
         },
-        create: function( type ){
+        _createControl: function( name, type, defaults ){
             var control;
             var elementTemplate = this._templates[UniformControls.FLOAT];
             if( typeof elementTemplate == 'undefined' ){
@@ -578,22 +578,22 @@ ShaderTool.modules.UniformControls = (function(){
             var element = createElementFromHTML(elementTemplate);
 
             if(type == UniformControls.FLOAT){
-                control = this._createFloat( element );
+                control = this._createFloat( name, element, defaults );
 
             } else if(type == UniformControls.VEC2){
-                control = this._createVec2( element );
+                control = this._createVec2( name, element, defaults );
 
             } else if(type == UniformControls.VEC3){
-                control = this._createVec3( element );
+                control = this._createVec3( name, element, defaults );
 
             } else if(type == UniformControls.VEC4){
-                control = this._createVec4( element );
+                control = this._createVec4( name, element, defaults );
 
             } else if(type == UniformControls.COLOR3){
-                control = this._createColor3( element );
+                control = this._createColor3( name, element, defaults );
 
             } else if(type == UniformControls.COLOR4){
-                control = this._createColor4( element );
+                control = this._createColor4( name, element, defaults );
 
             } else {
                 throw new ShaderTool.Exception('Unknown uniform control type: ' + type);
@@ -603,6 +603,14 @@ ShaderTool.modules.UniformControls = (function(){
             this._controls.push(control);
             this._container.appendChild(element);
 
+            // name element
+            var nameElement = element.querySelector('[data-uniform-name]');
+            if(nameElement){
+                nameElement.setAttribute('title', 'Uniform ' + name + ' settings');
+                nameElement.innerHTML = name;
+            }
+
+            // delete element
             var deleteElement = element.querySelector('[data-delete]');
             if(deleteElement){
                 var self = this;
@@ -622,22 +630,33 @@ ShaderTool.modules.UniformControls = (function(){
                 }
             }
         },
-        _createFloat: function( element ){
+        _createFloat: function( name, element, defaults ){
+            var minElement = element.querySelector('[data-range-min-1]');
+            var maxElement = element.querySelector('[data-range-max-2]');
+            var rangeElement = element.querySelector('[data-range-1]');
+
+            // Do we need controller?
+            var controller = {
+                getUniformCode: function(){
+                    return 'uniform float ' + name + ';'
+                }
+            }
+
+            return controller;
+        },
+        _createVec2: function( name, element, defaults ){
 
         },
-        _createVec2: function( element ){
+        _createVec3: function( name, element, defaults ){
 
         },
-        _createVec3: function( element ){
+        _createVec4: function( name, element, defaults ){
 
         },
-        _createVec4: function( element ){
+        _createColor3: function( name, element, defaults ){
 
         },
-        _createColor3: function( element ){
-
-        },
-        _createColor4: function( element ){
+        _createColor4: function( name, element, defaults ){
 
         }
     }

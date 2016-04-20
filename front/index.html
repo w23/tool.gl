@@ -4,7 +4,11 @@
 	<meta charset="UTF-8" />
 	<title>ShaderTool</title>
 	<link rel="stylesheet" href="css/main.css" />
-	<style></style>
+	<style>
+		* {
+			cursor: default;
+		}
+	</style>
 </head>
 <body>
 	<div class="wrapper">
@@ -52,12 +56,12 @@
 								
 								<script id="st-template-control-float" type="text/template">
 									<div class="controls__row controls-row">
-										<div class="controls-row__control-name" data-name></div>
+										<div class="controls-row__control-name" data-uniform-name></div>
 										<div class="controls-row__control-area">
 											<div class="controls-row__control control-float">
-												<input type="text" class="control-float__min i-text" placeholder="min" value="0"/>
-												<input class="control-float__range i-range" type="range" title="Range" min="0" max="1" step="0.001"/>
-												<input type="text" class="control-float__max i-text" placeholder="max" value="1"/>
+												<input data-range-min-1 type="text" class="control-float__min i-text" placeholder="min" value="0"/>
+												<input data-range-1 class="control-float__range i-range" type="range" title="Range" min="0" max="1" step="0.001"/>
+												<input data-range-max-1 type="text" class="control-float__max i-text" placeholder="max" value="1"/>
 											</div>
 										</div>
 										<div class="controls-row__remove button _remove" title="Remove" data-delete>x</div>
