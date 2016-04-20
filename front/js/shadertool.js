@@ -24,7 +24,7 @@ var ShaderTool = new (function ShaderTool(){
     catchReady(function(){
         self.modules.Ticker.init();
         self.modules.GUIHelper.init();
-        self.modules.ControlsFactory.init();
+        self.modules.UniformControls.init();
         self.modules.Controls.init();
         self.modules.Editor.init();
         self.modules.Rendering.init();
@@ -316,9 +316,9 @@ ShaderTool.modules.Editor = (function(){
         init: function(){
             console.log('ShaderTool.modules.Editor.init');
 
-            this.element = document.getElementById('editor');
+            this._container = document.getElementById('st-editor');
 
-            this._editor = ace.edit(this.element);
+            this._editor = ace.edit(this._container);
             this._editor.getSession().setMode('ace/mode/glsl');
 
             // https://ace.c9.io/build/kitchen-sink.html
@@ -362,7 +362,7 @@ ShaderTool.modules.Rendering = (function(){
 		init: function(){
 			console.log('ShaderTool.modules.Rendering.init');
 
-			this._canvas = document.getElementById('glcanvas');
+			this._canvas = document.getElementById('st-canvas');
 			this._context = D3.createContextOnCanvas(this._canvas);
 
 			var fragmentSource = 'precision mediump float;\n';
@@ -520,62 +520,137 @@ ShaderTool.modules.Controls = (function(){
     return new Controls();
 })();
 
-ShaderTool.modules.ControlsFactory = (function(){
-    function ControlsFactory(){}
-    ControlsFactory.prototype = {
-        init: function(){
-            console.log('ShaderTool.modules.ControlsFactory.init');
-            // 
-        },
-        getUniforms: function(){
+ShaderTool.modules.UniformControls = (function(){
 
+    // trim IE9+ !
+    var tempDiv = document.createElement('div');
+    function createElementFromHTML( html ){
+        tempDiv.innerHTML = html.trim();
+        return tempDiv.childNodes[0];
+    }
+
+    function UniformControls(){}
+    UniformControls.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.UniformControls.init');
+
+            this._container = document.getElementById('st-uniforms-container');
+
+            this._controls = [];
+
+            // Templates:
+            this._templates = {};
+            var totalTypes = UniformControls.TYPES.length;
+            for(var k=0; k<totalTypes; k++){
+                var type = UniformControls.TYPES[k]
+                var templateElement = document.getElementById('st-template-control-' + type);
+                if(templateElement){
+                    this._templates[type] = templateElement.innerHTML;
+                    templateElement.parentNode.removeChild(templateElement);
+                } else {
+                    console.warn('No template html for ' + type + ' type!');
+                }
+            }
+
+            this._container.innerHTML = ''; // Clear container
+
+            var self = this;
+            setTimeout(function(){
+                self.create(UniformControls.FLOAT);
+            }, 500)
         },
-        create: function( type, handler ){
-            if(type == ControlsFactory.FLOAT){
-                return this._createFloat( handler );
-            } else if(type == ControlsFactory.VEC2){
-                return this._createVec2( handler );
-            } else if(type == ControlsFactory.VEC3){
-                return this._createVec3( handler );
-            } else if(type == ControlsFactory.VEC4){
-                return this._createVec4( handler );
-            } else if(type == ControlsFactory.COLOR3){
-                return this._createColor3( handler );
-            } else if(type == ControlsFactory.COLOR4){
-                return this._createColor4( handler );
+        getUniformsCode: function(){
+            var result = '';
+            var totalControls = this._controls.length;
+            for(var k=0; k<totalControls; k++){
+                var control = this._controls[k];
+                result += control.getUniformCode() + '\n';
+            }
+            return result;
+        },
+        create: function( type ){
+            var control;
+            var elementTemplate = this._templates[UniformControls.FLOAT];
+            if( typeof elementTemplate == 'undefined' ){
+                console.error('No control template for type ' + type);
+                return;
+            }
+            var element = createElementFromHTML(elementTemplate);
+
+            if(type == UniformControls.FLOAT){
+                control = this._createFloat( element );
+
+            } else if(type == UniformControls.VEC2){
+                control = this._createVec2( element );
+
+            } else if(type == UniformControls.VEC3){
+                control = this._createVec3( element );
+
+            } else if(type == UniformControls.VEC4){
+                control = this._createVec4( element );
+
+            } else if(type == UniformControls.COLOR3){
+                control = this._createColor3( element );
+
+            } else if(type == UniformControls.COLOR4){
+                control = this._createColor4( element );
+
             } else {
                 throw new ShaderTool.Exception('Unknown uniform control type: ' + type);
                 return null;
             }
+
+            this._controls.push(control);
+            this._container.appendChild(element);
+
+            var deleteElement = element.querySelector('[data-delete]');
+            if(deleteElement){
+                var self = this;
+                deleteElement.addEventListener('click', function( e ){
+                    e.preventDefault();
+                    self._removeControl( control );
+                    self._container.removeChild( element );
+                }, false);
+            }
         },
-        _createFloat: function( handler ){
+        _removeControl: function( control ){
+            var totalControls = this._controls.length;
+            for(var k=0; k<totalControls; k++){
+                if(this._controls[k] === control){
+                    this._controls.splice(k, 1);
+                    return;
+                }
+            }
+        },
+        _createFloat: function( element ){
 
         },
-        _createVec2: function( handler ){
+        _createVec2: function( element ){
 
         },
-        _createVec3: function( handler ){
+        _createVec3: function( element ){
 
         },
-        _createVec4: function( handler ){
+        _createVec4: function( element ){
 
         },
-        _createColor3: function( handler ){
+        _createColor3: function( element ){
 
         },
-        _createColor4: function( handler ){
+        _createColor4: function( element ){
 
         }
     }
 
-    ControlsFactory.FLOAT = 'float';
-    ControlsFactory.VEC2 = 'vec2';
-    ControlsFactory.VEC3 = 'vec3';
-    ControlsFactory.VEC4 = 'vec4';
-    ControlsFactory.COLOR3 = 'color3';
-    ControlsFactory.COLOR4 = 'color4';
+    UniformControls.FLOAT = 'float';
+    UniformControls.VEC2 = 'vec2';
+    UniformControls.VEC3 = 'vec3';
+    UniformControls.VEC4 = 'vec4';
+    UniformControls.COLOR3 = 'color3';
+    UniformControls.COLOR4 = 'color4';
+    UniformControls.TYPES = [UniformControls.FLOAT, UniformControls.VEC2, UniformControls.VEC3, UniformControls.VEC4, UniformControls.COLOR3, UniformControls.COLOR4]
 
-    return new ControlsFactory();
+    return new UniformControls();
 })();
 
 // classes
