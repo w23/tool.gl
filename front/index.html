@@ -199,11 +199,11 @@ vec3 enlightDir(in vec3 n, in vec3 ed, in vec3 ld, in vec3 lc, in vec3 dc, in ve
 }
 
 void main() {
-	vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
-	uv.x *= uv2_resolution.x / uv2_resolution.y;
+	//vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
+	//uv.x *= uv2_resolution.x / uv2_resolution.y;
 
-	vec3 O = vec3(0., 0., 2.6);
-	vec3 D = normalize(vec3(uv, -2.));
+	//vec3 O = vec3(0., 0., 2.6);
+	//vec3 D = normalize(vec3(uv, -2.));
 
 	float l = trace(O, D, 0.);
 	vec3 p = O + D * l;
@@ -213,7 +213,7 @@ void main() {
 	if (l < 10.)
 		color += enlightDir(N(p), D, normalize(vec3(1.)), vec3(1.), color1.rgb, vec4(1., 1., 1., max(1., pow(slide, 3.))));
 
-	gl_FragColor = vec4(pow(color, vec3(.7)), 1.);
+	//gl_FragColor = vec4(pow(color, vec3(.7)), 1.);
 }
 						</pre>
 					</div>

@@ -200,14 +200,15 @@ body {
 }
 	.controls__row {
 		position: relative;
-		margin: 0 -4px 30px;
-		width: 370px;
+		/*margin: 0 -4px 30px;*/
+		margin-bottom: 30px;
+		/*width: 370px;*/
 		font-size: 0;
+		white-space: nowrap;
 	}
 	.controls__row > * {
 		display: inline-block;
 		vertical-align: top;
-		/*margin: 0 4px;*/
 	}
 	.controls__row._top {
 		margin-bottom: 30px;
@@ -244,11 +245,20 @@ body {
 		margin-bottom: 15px;
 	}
 	.controls-row__remove {
-		position: absolute;
-		right: -15px;
-		top: 0;
-		/*margin-left: 15px;*/
+		/*position: absolute;*/
+		/*right: -15px;*/
+		/*top: 0;*/
+		margin-left: 15px;
 	}
+
+.controls-add {
+
+}
+	.controls-add__button {
+		margin-right: 0;
+	}
+
+
 
 .controls__group {
 	position: relative;
@@ -365,6 +375,7 @@ body {
 	}
 	.control-float__range {
 		margin: 0 4px;
+		width: 568px;
 	}
 
 .control-color {
@@ -383,3 +394,7 @@ body {
 	.control-color__input {
 		/*margin: 0 auto;*/
 	}
+	.control-color__range {
+		width: 573px;
+	}
+
