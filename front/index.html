@@ -25,31 +25,31 @@
 					<div class="content__col canvas">
 						<canvas id="glcanvas" width="960" height="540" class="glcanvas">Your browser does not support canvas :(</canvas>
 						<div class="controls">
+							<!--  GLobal control panel  -->
 							<div class="controls__row _top controls-top clearfix">
 								<div class="controls-row__globals">
-									<div id="global-controls-play"			class="control _play"	title="Play"></div>
-									<div id="global-controls-pause"			class="control _pause"	title="Pause"></div>
-									<div id="global-controls-rewind"		class="control _rewind"	title="Rewind"></div>
-									<input id="global-controls-timescale"	class="control range"			title="Time scale" type="range"/>
-									<div id="global-controls-render-width"	class="label _locked"	title="Render width">550</div>
-									<div id="global-controls-render-height"	class="label _locked"	title="Render height">350</div>
-									<div id="global-controls-scene-time"	class="label _locked"	title="Scene time">117.65</div>
+									<div	id="st-play"			class="control _play"	title="Play"></div>
+									<div	id="st-pause"			class="control _pause"	title="Pause"></div>
+									<div	id="st-rewind"			class="control _rewind"	title="Rewind"></div>
+									<input	id="st-timescale"		class="control range"	title="Time scale" type="range"/>
+									<div	id="st-renderwidth"		class="label _locked"	title="Render width">550</div>
+									<div	id="st-renderheight"	class="label _locked"	title="Render height">350</div>
+									<div	id="st-scenetime"		class="label _locked"	title="Scene time">117.65</div>
 								</div>
 								<div class="controls-row__add controls-add inline">
-									<input class="controls-add__input i-text" id="" type="text" label="uniform name" placeholder="Uniform name" />
-									<select class="controls-add__select i-select inline" id="" name="" >
-										<option>float</option>
-										<option>vec2</option>
-										<option>vec3</option>
-										<option>vec4</option>
-										<option>color3 (RGB)</option>
-										<option>color4 (RGBA)</option>
+									<input	id="st-add-uniform-name" class="controls-add__input i-text" type="text" label="Uniform name" placeholder="Uniform name" />
+									<select	id="st-add-uniform-type" class="controls-add__select i-select inline">
+										<option value="float">float</option>
+										<option value="vec2">vec2</option>
+										<option value="vec3">vec3</option>
+										<option value="vec4">vec4</option>
+										<option value="color3">color3 (RGB)</option>
+										<option value="color4">color4 (RGBA)</option>
 									</select>
-									<div class="controls-add__button button _create" title="Create uniform">Create!</div>
+									<div 	id="st-add-uniform-submit" class="controls-add__button button _create" title="Create uniform">Create!</div>
 								</div>
-
-							</div><!-- .controls__row._top -->
-
+							</div>
+							<!-- Runtime-generated controls cntainer -->
 							<div class="controls__container">
 
 								<div class="controls__row controls-row">
@@ -109,8 +109,13 @@
 								</div>
 
 								<div class="controls__row controls-row">
-									<div class="controls-row__control-name">vec4</div>
+									<div class="controls-row__control-name">myVec4</div>
 									<div class="controls-row__control-area">
+										<div class="controls-row__control control-float">
+											<input type="text" class="control-float__min i-text" placeholder="min" />
+											<input class="control-float__range i-range" type="range" title="Range" />
+											<input type="text" class="control-float__max i-text" placeholder="max" />
+										</div>
 										<div class="controls-row__control control-float">
 											<input type="text" class="control-float__min i-text" placeholder="min" />
 											<input class="control-float__range i-range" type="range" title="Range" />
@@ -194,21 +199,21 @@ vec3 enlightDir(in vec3 n, in vec3 ed, in vec3 ld, in vec3 lc, in vec3 dc, in ve
 }
 
 void main() {
-	//vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
-	//uv.x *= uv2_resolution.x / uv2_resolution.y;
+	vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
+	uv.x *= uv2_resolution.x / uv2_resolution.y;
 
-	//vec3 O = vec3(0., 0., 2.6);
-	//vec3 D = normalize(vec3(uv, -2.));
+	vec3 O = vec3(0., 0., 2.6);
+	vec3 D = normalize(vec3(uv, -2.));
 
-	//float l = trace(O, D, 0.);
-	//vec3 p = O + D * l;
+	float l = trace(O, D, 0.);
+	vec3 p = O + D * l;
 
-	//vec3 color = vec3(0.);
+	vec3 color = vec3(0.);
 
-	//if (l < 10.)
-	//	color += enlightDir(N(p), D, normalize(vec3(1.)), vec3(1.), color1.rgb, vec4(1., 1., 1., max(1., pow(slide, 3.))));
+	if (l < 10.)
+		color += enlightDir(N(p), D, normalize(vec3(1.)), vec3(1.), color1.rgb, vec4(1., 1., 1., max(1., pow(slide, 3.))));
 
-	//gl_FragColor = vec4(pow(color, vec3(.7)), 1.);
+	gl_FragColor = vec4(pow(color, vec3(.7)), 1.);
 }
 						</pre>
 					</div>
@@ -231,7 +236,6 @@ void main() {
 	<script src="js/vendor/0.3js/D3.js"></script>
 	<script src="js/vendor/ace-builds/src-min-noconflict/ace.js"></script>
 	<script src="js/vendor/mode-glsl.js"></script>
-	<!-- <script src="js/vendor/theme-solarized_light.js"></script> -->
 	<script src="js/shadertool.js"></script>
 </body>
 </html>

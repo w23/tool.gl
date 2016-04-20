@@ -503,13 +503,17 @@ ShaderTool.modules.Controls = (function(){
             this._initSceneControls();
         },
         _initSceneControls: function(){
-            var playButton = document.getElementById('global-controls-play');
-            var pauseButton = document.getElementById('global-controls-pause');
-            var rewindButton = document.getElementById('global-controls-rewind');
-            var timescaleLabel = document.getElementById('global-controls-timescale');
-            var renderWidthLabel = document.getElementById('global-controls-render-width');
-            var renderHeightLabel = document.getElementById('global-controls-render-height');
-            var sceneTimeLabel = document.getElementById('global-controls-scene-time');
+            var playButton = document.getElementById('st-play');
+            var pauseButton = document.getElementById('st-pause');
+            var rewindButton = document.getElementById('st-rewind');
+            var timescaleLabel = document.getElementById('st-timescale');
+            var renderWidthLabel = document.getElementById('st-renderwidth');
+            var renderHeightLabel = document.getElementById('st-renderheight');
+            var sceneTimeLabel = document.getElementById('st-scenetime');
+
+            var addUniformNameInput = document.getElementById('st-add-uniform-name');
+            var addUniformTypeSelect = document.getElementById('st-add-uniform-type');
+            var addUniformSubmit = document.getElementById('st-add-uniform-submit');
         }
     }
     return new Controls();
@@ -563,48 +567,6 @@ ShaderTool.classes.Rasterizer = (function(){
 			if(savePrevProgramFlag){
 				this._prevProgram = newProgram;
 			}
-
-			/*
-			var unimatch = /^\s*uniform\s+(float|vec2|vec3|vec4)\s+([a-zA-Z]*[-_a-zA-Z0-9]).*\/\/(slide|color)({.*})/gm;
-			var uniforms = [];
-
-			for (;;) {
-				uniform = unimatch.exec(fragmentSource);
-				if (!uniform) {
-					break;
-				}
-
-				try {
-					uniforms.push({
-						type: uniform[1],
-						name: uniform[2],
-						kind: uniform[3],
-						settings: JSON.parse(uniform[4]),
-						handler: (
-							function (typename, name) {
-								var type;
-								if (typename === 'float') {
-									type = this._context.UniformFloat;
-								} else if (typename === 'vec2') {
-									type = this._context.UniformVec2;
-								} else if (typename === 'vec3') {
-									type = this._context.UniformVec3;
-								} else if (typename === 'vec4') {
-									type = this._context.UniformVec4;
-								}
-								return function (value) {
-									console.log(value);
-									source.uniforms[name] = type(value);
-								};
-
-						})(uniform[1], uniform[2])
-					});
-				} catch (e) {
-					console.log(e);
-				}
-			}
-
-			return uniforms;*/
 		},
 		render: function ( elapsedTime, frame, resolution, destination) {
 			this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
