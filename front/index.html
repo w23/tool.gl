@@ -54,103 +54,133 @@
 							<!-- Runtime-generated controls cntainer -->
 							<div id="st-uniforms-container" class="controls__container">
 								
+								<!-- float control template -->
 								<script id="st-template-control-float" type="text/template">
 									<div class="controls__row controls-row">
 										<div class="controls-row__control-name" data-uniform-name></div>
 										<div class="controls-row__control-area">
 											<div class="controls-row__control control-float">
-												<input data-range-min-1 type="text" class="control-float__min i-text" placeholder="min" value="0"/>
-												<input data-range-1 class="control-float__range i-range" type="range" title="Range" min="0" max="1" step="0.001"/>
-												<input data-range-max-1 type="text" class="control-float__max i-text" placeholder="max" value="1"/>
+												<span	data-range-value-1	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-1	type="text"		class="control-float__min i-text"/>
+												<input	data-range-1		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-1	type="text"		class="control-float__max i-text"/>
 											</div>
 										</div>
-										<div class="controls-row__remove button _remove" title="Remove" data-delete>x</div>
+										<div class="controls-row__remove button _remove" data-uniform-delete></div>
 									</div>
 								</script>
 
-								<!-- <div class="controls__row controls-row">
-									<div class="controls-row__control-name">float1</div>
-									<div class="controls-row__control-area">
-										<div class="controls-row__control control-float">
-											<input type="text" class="control-float__min i-text" placeholder="min" />
-											<input class="control-float__range i-range" type="range" title="Range" />
-											<input type="text" class="control-float__max i-text" placeholder="max" />
+								<!-- vec2 control template -->
+								<script id="st-template-control-vec2" type="text/template">
+									<div class="controls__row controls-row">
+										<div class="controls-row__control-name" data-uniform-name></div>
+										<div class="controls-row__control-area">
+											<div class="controls-row__control control-float">
+												<span	data-range-value-1	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-1	type="text"		class="control-float__min i-text"/>
+												<input	data-range-1		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-1	type="text"		class="control-float__max i-text"/>
+											</div>
+											<div class="controls-row__control control-float">
+												<span	data-range-value-2	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-2	type="text"		class="control-float__min i-text"/>
+												<input	data-range-2		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-2	type="text"		class="control-float__max i-text"/>
+											</div>
 										</div>
+										<div class="controls-row__remove button _remove" data-uniform-delete></div>
 									</div>
-									<div class="controls-row__remove button _remove" title="Remove">x</div>
-								</div>
+								</script>
 
-								<div class="controls__row controls-row">
-									<div class="controls-row__control-name" title="veryLongVariableNamevec3">vec3veryLongVariableName</div>
-									<div class="controls-row__control-area">
-										<div class="controls-row__control control-float">
-											<input type="text" class="control-float__min i-text" placeholder="min" />
-											<input class="control-float__range i-range" type="range" title="Range" />
-											<input type="text" class="control-float__max i-text" placeholder="max" />
+								<!-- vec3 control template -->
+								<script id="st-template-control-vec3" type="text/template">
+									<div class="controls__row controls-row">
+										<div class="controls-row__control-name" data-uniform-name></div>
+										<div class="controls-row__control-area">
+											<div class="controls-row__control control-float">
+												<span	data-range-value-1	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-1	type="text"		class="control-float__min i-text"/>
+												<input	data-range-1		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-1	type="text"		class="control-float__max i-text"/>
+											</div>
+											<div class="controls-row__control control-float">
+												<span	data-range-value-2	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-2	type="text"		class="control-float__min i-text"/>
+												<input	data-range-2		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-2	type="text"		class="control-float__max i-text"/>
+											</div>
+											<div class="controls-row__control control-float">
+												<span	data-range-value-3	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-3	type="text"		class="control-float__min i-text"/>
+												<input	data-range-3		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-3	type="text"		class="control-float__max i-text"/>
+											</div>
 										</div>
-										<div class="controls-row__control control-float">
-											<input type="text" class="control-float__min i-text" placeholder="min" />
-											<input class="control-float__range i-range" type="range" title="Range" />
-											<input type="text" class="control-float__max i-text" placeholder="max" />
-										</div>
-										<div class="controls-row__control control-float">
-											<input type="text" class="control-float__min i-text" placeholder="min" />
-											<input class="control-float__range i-range" type="range" title="Range" />
-											<input type="text" class="control-float__max i-text" placeholder="max" />
-										</div>
+										<div class="controls-row__remove button _remove" data-uniform-delete></div>
 									</div>
-									<div class="controls-row__remove button _remove" title="Remove">x</div>
-								</div>
+								</script>
 
-								<div class="controls__row controls-row">
-									<div class="controls-row__control-name">color1</div>
-									<div class="controls-row__control-area">
-										<div class="controls-row__control control-color">
-											<input type="color" class="control-color__input i-color" />
+								<!-- vec4 control template -->
+								<script id="st-template-control-vec4" type="text/template">
+									<div class="controls__row controls-row">
+										<div class="controls-row__control-name" data-uniform-name></div>
+										<div class="controls-row__control-area">
+											<div class="controls-row__control control-float">
+												<span	data-range-value-1	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-1	type="text"		class="control-float__min i-text"/>
+												<input	data-range-1		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-1	type="text"		class="control-float__max i-text"/>
+											</div>
+											<div class="controls-row__control control-float">
+												<span	data-range-value-2	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-2	type="text"		class="control-float__min i-text"/>
+												<input	data-range-2		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-2	type="text"		class="control-float__max i-text"/>
+											</div>
+											<div class="controls-row__control control-float">
+												<span	data-range-value-3	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-3	type="text"		class="control-float__min i-text"/>
+												<input	data-range-3		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-3	type="text"		class="control-float__max i-text"/>
+											</div>
+											<div class="controls-row__control control-float">
+												<span	data-range-value-4	type="text"		class="control-float__value i-text"></span>
+												<input	data-range-min-4	type="text"		class="control-float__min i-text"/>
+												<input	data-range-4		type="range"	class="control-float__range i-range"/>
+												<input	data-range-max-4	type="text"		class="control-float__max i-text"/>
+											</div>
 										</div>
+										<div class="controls-row__remove button _remove" data-uniform-delete></div>
 									</div>
-									<div class="controls-row__remove button _remove" title="Remove">x</div>
-								</div>
+								</script>
 
-								<div class="controls__row controls-row">
-									<div class="controls-row__control-name">color2Alpha</div>
-									<div class="controls-row__control-area">
-										<div class="controls-row__control control-color">
-											<input type="color" class="control-color__input i-color" />
-											<span class="control-color__alpha-label">Alpha:</span>
-											<input class="control-color__range i-range" type="range" title="Alpha" />
+								<!-- color3 control template -->
+								<script id="st-template-control-color3" type="text/template">
+									<div class="controls__row controls-row">
+										<div class="controls-row__control-name" data-uniform-name></div>
+										<div class="controls-row__control-area">
+											<div class="controls-row__control control-color">
+												<input type="color" class="control-color__input i-color" />
+											</div>
 										</div>
+										<div class="controls-row__remove button _remove" data-uniform-delete></div>
 									</div>
-									<div class="controls-row__remove button _remove" title="Remove">x</div>
-								</div>
+								</script>
 
-								<div class="controls__row controls-row">
-									<div class="controls-row__control-name">myVec4</div>
-									<div class="controls-row__control-area">
-										<div class="controls-row__control control-float">
-											<input type="text" class="control-float__min i-text" placeholder="min" />
-											<input class="control-float__range i-range" type="range" title="Range" />
-											<input type="text" class="control-float__max i-text" placeholder="max" />
+								<!-- color4 control template -->
+								<script id="st-template-control-color4" type="text/template">
+									<div class="controls__row controls-row">
+										<div class="controls-row__control-name" data-uniform-name></div>
+										<div class="controls-row__control-area">
+											<div class="controls-row__control control-color">
+												<input type="color" class="control-color__input i-color" />
+												<span class="control-color__alpha-label">Alpha:</span>
+												<input class="control-color__range i-range" type="range" title="Alpha" />
+											</div>
 										</div>
-										<div class="controls-row__control control-float">
-											<input type="text" class="control-float__min i-text" placeholder="min" />
-											<input class="control-float__range i-range" type="range" title="Range" />
-											<input type="text" class="control-float__max i-text" placeholder="max" />
-										</div>
-										<div class="controls-row__control control-float">
-											<input type="text" class="control-float__min i-text" placeholder="min" />
-											<input class="control-float__range i-range" type="range" title="Range" />
-											<input type="text" class="control-float__max i-text" placeholder="max" />
-										</div>
-										<div class="controls-row__control control-float">
-											<input type="text" class="control-float__min i-text" placeholder="min" />
-											<input class="control-float__range i-range" type="range" title="Range" />
-											<input type="text" class="control-float__max i-text" placeholder="max" />
-										</div>
+										<div class="controls-row__remove button _remove" data-uniform-delete></div>
 									</div>
-									<div class="controls-row__remove button _remove" title="Remove">x</div>
-								</div> -->
-
+								</script>
 							</div>
 
 						</div><!-- .controls -->

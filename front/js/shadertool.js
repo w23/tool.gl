@@ -139,10 +139,37 @@ ShaderTool.utils = {
     isFunction: function( object ){
         return typeof object == 'function';
     },
-    // future methods:
-    isArray: function(){},
-    isArrayLike: function(){},
-    copyObject: function(){}
+
+    isNumberKey: function(e){
+        var charCode = (e.which) ? e.which : e.keyCode;
+        if (charCode == 46) {
+            //Check if the text already contains the . character
+            if (txt.value.indexOf('.') === -1) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            // if (charCode > 31 && (charCode < 48 || charCode > 57)){
+            if(charCode > 31 && (charCode < 48 || charCode > 57) && !(charCode == 46 || charCode == 8)){
+                return false;
+            }
+        }
+        return true;
+    },
+    toDecimalString: function( string ){
+        if(this.isNumber(string)){
+            return string;
+        }
+
+        if(string.substr(0,1) == '0'){
+            if(string.substr(1,1) != '.'){
+                string = '0.' + string.substr(1, string.length);
+            }
+        }
+
+        return string == '0.' ? '0' : string;
+    }
 };
 
 // Callback (Signal?)
@@ -202,6 +229,90 @@ ShaderTool.utils.Callback = (function(){
 ShaderTool.utils.Float32Array = (function(){
     return typeof Float32Array === 'function' ? Float32Array : Array;
 })();
+
+ShaderTool.utils.DOMUtils = (function(){
+    function addSingleEventListener(element, eventName, handler){
+        if (element.addEventListener) {
+            element.addEventListener(eventName, handler);
+        } else {
+            element.attachEvent('on' + eventName, function(e){
+                handler.apply(element,[e]);
+            });
+        }
+    }
+
+    var tempDiv = document.createElement('div');
+
+    function DOMUtils(){};
+    DOMUtils.prototype = {
+        addEventListener : function(element, eventName, handler){
+
+            if(ShaderTool.utils.isArray(element)){
+
+                var totalElements = element.length;
+                for(var k=0; k<totalElements; k++){
+                    this.addEventListener(element[k], eventName, handler);
+                }
+
+            } else {
+
+                var eventName = ShaderTool.utils.isArray(eventName) ? eventName : eventName.split(' ').join('|').split(',').join('|').split('|');
+
+                if(eventName.length > 1){
+
+                    var totalEvents = eventName.length;
+                    for(var k=0; k<totalEvents; k++){
+                        addSingleEventListener(element, eventName[k], handler );
+                    }
+                } else {
+                    addSingleEventListener(element, eventName[0], handler);
+                }
+            }
+        },
+        addClass : function(element, className){
+            if (element.classList){
+                element.classList.add(className);
+            } else {
+                element.className += SPACE + className;
+            }
+        },
+        removeClass : function(element, className){
+            if (element.classList){
+                element.classList.remove(className);
+            } else{
+                element.className = element.className.replace(new RegExp('(^|\\b)' + className.split(SPACE).join('|') + '(\\b|$)', 'gi'), SPACE);
+            }
+        },
+        injectCSS: function( cssText ){
+            try{
+                var styleElement = document.createElement('style');
+                    styleElement.type = 'text/css';
+
+                if (styleElement.styleSheet) {
+                    styleElement.styleSheet.cssText = cssText;
+                } else {
+                    styleElement.appendChild(document.createTextNode(cssText));
+                }
+                document.getElementsByTagName('head')[0].appendChild(styleElement);
+
+                return true;
+            } catch( e ){
+                return false;
+            }
+        },
+        createFromHTML: function( html ){
+            tempDiv.innerHTML = html.trim();
+            var result = tempDiv.childNodes;
+            if(result.length > 1){
+                tempDiv.innerHTML = '<div>' + html.trim() + '<div/>'
+                result = tempDiv.childNodes;
+            }
+            return result[0];
+        }
+    }
+    return new DOMUtils();
+})();
+
 
 // Modules
 
@@ -522,13 +633,6 @@ ShaderTool.modules.Controls = (function(){
 
 ShaderTool.modules.UniformControls = (function(){
 
-    // trim IE9+ !
-    var tempDiv = document.createElement('div');
-    function createElementFromHTML( html ){
-        tempDiv.innerHTML = html.trim();
-        return tempDiv.childNodes[0];
-    }
-
     function UniformControls(){}
     UniformControls.prototype = {
         init: function(){
@@ -538,9 +642,18 @@ ShaderTool.modules.UniformControls = (function(){
 
             this._controls = [];
 
+            this._createMethods = {};
+            this._createMethods[UniformControls.FLOAT] = this._createFloat;
+            this._createMethods[UniformControls.VEC2] = this._createVec2;
+            this._createMethods[UniformControls.VEC3] = this._createVec3;
+            this._createMethods[UniformControls.VEC4] = this._createVec4;
+            this._createMethods[UniformControls.COLOR3] = this._createColor3;
+            this._createMethods[UniformControls.COLOR4] = this._createColor4;
+
             // Templates:
             this._templates = {};
             var totalTypes = UniformControls.TYPES.length;
+
             for(var k=0; k<totalTypes; k++){
                 var type = UniformControls.TYPES[k]
                 var templateElement = document.getElementById('st-template-control-' + type);
@@ -554,11 +667,11 @@ ShaderTool.modules.UniformControls = (function(){
 
             this._container.innerHTML = ''; // Clear container
 
-            var self = this;
-            setTimeout(function(){
-                self._createControl('myFloat1', UniformControls.FLOAT);
-            }, 500)
+            for(var k=0; k<totalTypes; k++){
+                this._createControl('myControl' + (k+1), UniformControls.TYPES[k] );
+            }
         },
+
         getUniformsCode: function(){
             var result = [];
             var totalControls = this._controls.length;
@@ -568,15 +681,22 @@ ShaderTool.modules.UniformControls = (function(){
             }
             return result.join('\n');
         },
+        getUniformsData: function(){
+            // temp
+            return [];
+        },
+
         _createControl: function( name, type, defaults ){
             var control;
-            var elementTemplate = this._templates[UniformControls.FLOAT];
+            var elementTemplate = this._templates[type];
+
             if( typeof elementTemplate == 'undefined' ){
                 console.error('No control template for type ' + type);
                 return;
             }
-            var element = createElementFromHTML(elementTemplate);
 
+            var element = ShaderTool.utils.DOMUtils.createFromHTML(elementTemplate);
+            /*
             if(type == UniformControls.FLOAT){
                 control = this._createFloat( name, element, defaults );
 
@@ -598,6 +718,14 @@ ShaderTool.modules.UniformControls = (function(){
             } else {
                 throw new ShaderTool.Exception('Unknown uniform control type: ' + type);
                 return null;
+            }*/
+
+            var createMethod = this._createMethods[type];
+            if( createMethod ){
+                control = createMethod.apply(this, [name, element, defaults] );
+            } else {
+                throw new ShaderTool.Exception('Unknown uniform control type: ' + type);
+                return null;
             }
 
             this._controls.push(control);
@@ -611,7 +739,7 @@ ShaderTool.modules.UniformControls = (function(){
             }
 
             // delete element
-            var deleteElement = element.querySelector('[data-delete]');
+            var deleteElement = element.querySelector('[data-uniform-delete]');
             if(deleteElement){
                 var self = this;
                 deleteElement.addEventListener('click', function( e ){
@@ -631,33 +759,166 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
         _createFloat: function( name, element, defaults ){
-            var minElement = element.querySelector('[data-range-min-1]');
-            var maxElement = element.querySelector('[data-range-max-2]');
-            var rangeElement = element.querySelector('[data-range-1]');
-
-            // Do we need controller?
             var controller = {
                 getUniformCode: function(){
                     return 'uniform float ' + name + ';'
+                },
+                getUniformData: function(){
+                    return {};
                 }
             }
+
+            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
+                console.log( value );
+            });
 
             return controller;
         },
         _createVec2: function( name, element, defaults ){
-
+            var controller = {
+                getUniformCode: function(){
+                    return 'uniform vec2 ' + name + ';'
+                },
+                getUniformData: function(){
+                    return {};
+                }
+            }
+            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
+                console.log( value );
+            });
+            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
+                console.log( value );
+            });
         },
         _createVec3: function( name, element, defaults ){
-
+            var controller = {
+                getUniformCode: function(){
+                    return 'uniform vec3 ' + name + ';'
+                },
+                getUniformData: function(){
+                    return {};
+                }
+            }
+            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
+                console.log( value );
+            });
+            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
+                console.log( value );
+            });
+            this._initRangeElementGroup(element, '3', 0, 1, function( value ){
+                console.log( value );
+            });
         },
         _createVec4: function( name, element, defaults ){
-
+            var controller = {
+                getUniformCode: function(){
+                    return 'uniform vec4 ' + name + ';'
+                },
+                getUniformData: function(){
+                    return {};
+                }
+            }
+            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
+                console.log( value );
+            });
+            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
+                console.log( value );
+            });
+            this._initRangeElementGroup(element, '3', 0, 1, function( value ){
+                console.log( value );
+            });
+            this._initRangeElementGroup(element, '4', 0, 1, function( value ){
+                console.log( value );
+            });
         },
         _createColor3: function( name, element, defaults ){
-
+            var controller = {
+                getUniformCode: function(){
+                    return 'uniform vec3 ' + name + ';'
+                },
+                getUniformData: function(){
+                    return {};
+                }
+            }
         },
         _createColor4: function( name, element, defaults ){
+            var controller = {
+                getUniformCode: function(){
+                    return 'uniform vec4 ' + name + ';'
+                },
+                getUniformData: function(){
+                    return {};
+                }
+            }
+        },
 
+        _initRangeElementGroup: function( element, attrIndex, minValue, maxValue, changeHandler ){
+            var minValue = ShaderTool.utils.isNumber(minValue) ? minValue : 0;
+            var maxValue = ShaderTool.utils.isNumber(maxValue) ? maxValue : 1;
+
+            var minElement = element.querySelector('[data-range-min-' + attrIndex + ']');
+            var maxElement = element.querySelector('[data-range-max-' + attrIndex + ']');
+            var rangeElement = element.querySelector('[data-range-' + attrIndex + ']');
+            var valueElement = element.querySelector('[data-range-value-' + attrIndex + ']');
+
+            minElement.setAttribute('title', 'Minimum value');
+            maxElement.setAttribute('title', 'Maximum value');
+
+            rangeElement.setAttribute('step', '0.0001');
+
+            var prevMinValue = minElement.value = rangeElement.value = valueElement.innerHTML = minValue;
+            var prevMaxValue = maxElement.value = maxValue;
+
+            function updateRangeSettings(){
+                if(minElement.value == '' || maxElement.value == ''){
+                    return;
+                }
+
+                prevMinValue = minElement.value;
+                prevMaxValue = maxElement.value;
+
+                minValue = ShaderTool.utils.toDecimalString(minElement.value);
+                maxValue = ShaderTool.utils.toDecimalString(maxElement.value);
+
+                var min = minValue = parseFloat(minValue);
+                var max = maxValue = parseFloat(maxValue);
+
+                if(min > max){
+                    max = [min, min = max][0];
+                }
+
+                rangeElement.setAttribute('min', min);
+                rangeElement.setAttribute('max', max);
+            }
+
+            ShaderTool.utils.DOMUtils.addEventListener(rangeElement, 'input change', function( e ){
+
+                if(minElement.value == ''){
+                    minElement.value = prevMinValue;
+                }
+                if(maxElement.value == ''){
+                    maxElement.value = prevMaxValue;
+                }
+
+                if(minValue > maxValue){
+                    prevMinValue = minElement.value = maxValue;
+                    prevMaxValue = maxElement.value = minValue;
+                }
+
+                valueElement.innerHTML = rangeElement.value;
+
+                changeHandler && changeHandler(rangeElement.value);
+            });
+
+            ShaderTool.utils.DOMUtils.addEventListener([minElement, maxElement], 'keydown input change', function( e ){
+                if(!ShaderTool.utils.isNumberKey( e )){
+                    e.preventDefault();
+                    return false;
+                }
+                updateRangeSettings();
+            });
+
+            updateRangeSettings();
         }
     }
 
