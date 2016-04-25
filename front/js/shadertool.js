@@ -494,6 +494,8 @@ ShaderTool.modules.Rendering = (function(){
 			this._canvas = document.getElementById('st-canvas');
 			this._context = D3.createContextOnCanvas(this._canvas);
 
+            this._sourceChanged = true;
+
 			var fragmentSource = 'precision mediump float;\n';
 				fragmentSource += 'uniform sampler2D us2_source;\n';
 				fragmentSource += 'uniform float uf_time;\n';
@@ -561,6 +563,8 @@ ShaderTool.modules.Rendering = (function(){
 
                 rasterizer.updateSource(fullSource);
             }
+
+            this._sourceChanged = true;
 		},
 		_setResolution: function (width, height) {
 			if (!this._resolution) {
