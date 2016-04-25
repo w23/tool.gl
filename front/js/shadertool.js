@@ -456,7 +456,6 @@ ShaderTool.modules.Editor = (function(){
 
             var self = this;
 
-            // TODO: Add debounce
             this._editor.on('change', function(){
             	self.onChange.call();
             });
@@ -494,7 +493,7 @@ ShaderTool.modules.Rendering = (function(){
 			this._canvas = document.getElementById('st-canvas');
 			this._context = D3.createContextOnCanvas(this._canvas);
 
-            this._sourceChanged = true;
+            // this._sourceChanged = true;
 
 			var fragmentSource = 'precision mediump float;\n';
 				fragmentSource += 'uniform sampler2D us2_source;\n';
@@ -502,7 +501,7 @@ ShaderTool.modules.Rendering = (function(){
 				fragmentSource += 'uniform vec2 uv2_resolution;\n';
 				fragmentSource += 'void main() {\n';
 				fragmentSource += '\tgl_FragColor = \n';
-				//vec4(gl_FragCoord.xy / uv2_resolution, sin(uf_time), 1.);\n';
+				// fragmentSource += 'vec4(gl_FragCoord.xy / uv2_resolution, sin(uf_time), 1.);\n';
 				fragmentSource += '\t\ttexture2D(us2_source, gl_FragCoord.xy / uv2_resolution);\n';
 				fragmentSource += '}\n';
 
@@ -538,7 +537,7 @@ ShaderTool.modules.Rendering = (function(){
 			this._rasterizers = [];
 			this._rasterizers.push(new ShaderTool.classes.Rasterizer( this._context ));
 
-            ShaderTool.modules.UniformControls.setContext(this._context)
+            ShaderTool.modules.UniformControls.setContext(this._context);
 
 			this._updateSource();
 
@@ -557,14 +556,16 @@ ShaderTool.modules.Rendering = (function(){
             //}
             //this._fullSource = fullSource;
 
+            var uniforms = ShaderTool.modules.UniformControls.getUniformsData();
+
             var totalRasterizers = this._rasterizers.length;
             for(var k=0; k<totalRasterizers; k++){
                 var rasterizer = this._rasterizers[k];
 
-                rasterizer.updateSource(fullSource);
+                rasterizer.updateSource(fullSource, uniforms);
             }
 
-            this._sourceChanged = true;
+            // this._sourceChanged = true;
 		},
 		_setResolution: function (width, height) {
 			if (!this._resolution) {
@@ -680,11 +681,11 @@ ShaderTool.modules.Rendering = (function(){
 			this._writePosition = (this._writePosition + 1) & 1;
 
 
-            this._source.uniforms = ShaderTool.modules.UniformControls.getUniformsData();
+            // this._source.uniforms = ShaderTool.modules.UniformControls.getUniformsData();
 
             this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime );
             this._source.uniforms['uv2_resolution'] = this._context.UniformVec2( this._resolution );
-            this._source.uniforms['us2_source'] = this._context.UniformSampler(this._texture[this._writePosition]);
+            this._source.uniforms['us2_source'] = this._context.UniformSampler( this._texture[this._writePosition] );
 
             /*
 			this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime );
@@ -786,10 +787,8 @@ ShaderTool.modules.UniformControls = (function(){
 
                 if(control.type == UniformControls.FLOAT){
                     this._uniforms[control.name] = this._context.UniformFloat(value);
-                    console.log(value)
                 } else if(control.type == UniformControls.VEC3){
                     this._uniforms[control.name] = this._context.UniformVec3(value);
-                    console.log(value)
                 }
 
             }
@@ -861,6 +860,7 @@ ShaderTool.modules.UniformControls = (function(){
         _callChange: function(){
             console.log('Uniform controls changed');
             this._changed = true;
+
             this.onChange.call();
         },
         _createFloat: function( name, element, defaults ){
@@ -882,8 +882,8 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
         _createVec2: function( name, element, defaults ){
-            var uniformValue = [0,0];
             var self = this;
+            var uniformValue = [0,0];
 
             this._initRangeElementGroup(element, '1', 0, 1, function( value ){
                 uniformValue[0] = value;
@@ -904,8 +904,8 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
         _createVec3: function( name, element, defaults ){
-            var uniformValue = [0,0,0];
             var self = this;
+            var uniformValue = [0,0,0];
 
             this._initRangeElementGroup(element, '1', 0, 1, function( value ){
                 uniformValue[0] = value;
@@ -930,9 +930,9 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
         _createVec4: function( name, element, defaults ){
-            var uniformValue = [0,0,0,0];
             var self = this;
-
+            var uniformValue = [0,0,0,0];
+            
             this._initRangeElementGroup(element, '1', 0, 1, function( value ){
                 uniformValue[0] = value;
                 self._callChange();
@@ -960,12 +960,13 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
         _createColor3: function( name, element, defaults ){
+
+            var self = this;
             var uniformValue = this._initColorSelectElementGroup( element, false, function( value ){
                 uniformValue = value;
                 self._callChange();
             })
-            var self = this;
-
+            
             return {
                 getUniformCode: function(){
                     return 'uniform vec3 ' + name + ';'
@@ -976,11 +977,11 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
         _createColor4: function( name, element, defaults ){
+            var self = this;
             var uniformValue = this._initColorSelectElementGroup( element, true, function( value ){
                 uniformValue = value;
                 self._callChange();
             })
-            var self = this;
 
             return {
                 getUniformCode: function(){
@@ -1155,7 +1156,7 @@ ShaderTool.classes.Rasterizer = (function(){
 		};
 	}
 	Rasterizer.prototype = {
-		updateSource: function (fragmentSource) {
+		updateSource: function (fragmentSource, uniforms) {
 			var savePrevProgramFlag = true;
 			try{
 				var newProgram = this._context.createProgram({
@@ -1172,13 +1173,17 @@ ShaderTool.classes.Rasterizer = (function(){
 				}
 			}
 
+
+            // ?
+            this._source.uniforms = uniforms;
+
 			if(savePrevProgramFlag){
 				this._prevProgram = newProgram;
 			}
 		},
-		render: function ( elapsedTime, frame, resolution, destination) {
-			this._source.uniforms['us2_frame'] = this._context.UniformSampler(frame);
-			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2(resolution);
+		render: function ( elapsedTime, frame, resolution, destination ) {
+			this._source.uniforms['us2_frame'] = this._context.UniformSampler( frame );
+			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2( resolution );
 			this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime);
 			this._context.rasterize(this._source, null, destination);
 		}
