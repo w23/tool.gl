@@ -169,7 +169,17 @@ ShaderTool.utils = {
         }
 
         return string == '0.' ? '0' : string;
+    },
+    /*
+    hexToRgb: function(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        ] : [];
     }
+    */
 };
 
 // Callback (Signal?)
@@ -667,6 +677,7 @@ ShaderTool.modules.UniformControls = (function(){
 
             this._container.innerHTML = ''; // Clear container
 
+            // Tests:
             for(var k=0; k<totalTypes; k++){
                 this._createControl('myControl' + (k+1), UniformControls.TYPES[k] );
             }
@@ -681,6 +692,7 @@ ShaderTool.modules.UniformControls = (function(){
             }
             return result.join('\n');
         },
+
         getUniformsData: function(){
             // temp
             return [];
@@ -696,29 +708,6 @@ ShaderTool.modules.UniformControls = (function(){
             }
 
             var element = ShaderTool.utils.DOMUtils.createFromHTML(elementTemplate);
-            /*
-            if(type == UniformControls.FLOAT){
-                control = this._createFloat( name, element, defaults );
-
-            } else if(type == UniformControls.VEC2){
-                control = this._createVec2( name, element, defaults );
-
-            } else if(type == UniformControls.VEC3){
-                control = this._createVec3( name, element, defaults );
-
-            } else if(type == UniformControls.VEC4){
-                control = this._createVec4( name, element, defaults );
-
-            } else if(type == UniformControls.COLOR3){
-                control = this._createColor3( name, element, defaults );
-
-            } else if(type == UniformControls.COLOR4){
-                control = this._createColor4( name, element, defaults );
-
-            } else {
-                throw new ShaderTool.Exception('Unknown uniform control type: ' + type);
-                return null;
-            }*/
 
             var createMethod = this._createMethods[type];
             if( createMethod ){
@@ -840,6 +829,9 @@ ShaderTool.modules.UniformControls = (function(){
                     return {};
                 }
             }
+            this._initColorSelectElementGroup( element, false, function( value ){
+                console.log( value );
+            })
         },
         _createColor4: function( name, element, defaults ){
             var controller = {
@@ -850,75 +842,130 @@ ShaderTool.modules.UniformControls = (function(){
                     return {};
                 }
             }
+            this._initColorSelectElementGroup( element, true, function( value ){
+                console.log( value );
+            })
         },
+        _initColorSelectElementGroup: function( element, useAlpha, changeHandler ){
+            var colorElement = element.querySelector('[data-color]');
 
-        _initRangeElementGroup: function( element, attrIndex, minValue, maxValue, changeHandler ){
+            var value = [0,0,0];
+
+            if(useAlpha){
+                value[3] = 255;
+            }
+
+            function callHandler(){
+                changeHandler && changeHandler( value );
+            }
+
+            ShaderTool.utils.DOMUtils.addEventListener(colorElement, 'change', function( e ){
+                var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(colorElement.value);
+
+                value[0] = parseInt(result[1], 16);
+                value[1] = parseInt(result[2], 16);
+                value[2] = parseInt(result[3], 16);
+
+                callHandler();
+            });
+
+            if(useAlpha){
+                var rangeElement = element.querySelector('[data-range]');
+                
+                rangeElement.setAttribute('min', '0');
+                rangeElement.setAttribute('max', '255');
+                rangeElement.setAttribute('step', '1');
+                rangeElement.setAttribute('value', '255');
+
+                ShaderTool.utils.DOMUtils.addEventListener(rangeElement, 'input change', function( e ){
+                    value[3] = parseInt(rangeElement.value);
+                    callHandler();
+                })
+            }
+        },
+        _initRangeElementGroup: function( element, attrIndex, minValue, maxValue, changeHandler, stepValue ){
             var minValue = ShaderTool.utils.isNumber(minValue) ? minValue : 0;
             var maxValue = ShaderTool.utils.isNumber(maxValue) ? maxValue : 1;
 
-            var minElement = element.querySelector('[data-range-min-' + attrIndex + ']');
-            var maxElement = element.querySelector('[data-range-max-' + attrIndex + ']');
+            var minElement = element.querySelector('[data-range-min-' + attrIndex + ']');// || document.createElement('input');
+            var maxElement = element.querySelector('[data-range-max-' + attrIndex + ']');// || document.createElement('input');
             var rangeElement = element.querySelector('[data-range-' + attrIndex + ']');
-            var valueElement = element.querySelector('[data-range-value-' + attrIndex + ']');
+            var valueElement = element.querySelector('[data-range-value-' + attrIndex + ']') || document.createElement('div');
 
-            minElement.setAttribute('title', 'Minimum value');
-            maxElement.setAttribute('title', 'Maximum value');
+                rangeElement.setAttribute('step', typeof stepValue != 'undefined' ? stepValue : '0.0001');
 
-            rangeElement.setAttribute('step', '0.0001');
+            //var hasMinMaxElements = minElement && maxElement;
+            var prevMinValue;
+            var prevMaxValue;    
 
-            var prevMinValue = minElement.value = rangeElement.value = valueElement.innerHTML = minValue;
-            var prevMaxValue = maxElement.value = maxValue;
+            //if(hasMinMaxElements){
+                minElement.setAttribute('title', 'Minimum value');
+                maxElement.setAttribute('title', 'Maximum value');  
 
-            function updateRangeSettings(){
-                if(minElement.value == '' || maxElement.value == ''){
-                    return;
-                }
+                prevMinValue = minElement.value = rangeElement.value = valueElement.innerHTML = minValue;
+                prevMaxValue = maxElement.value = maxValue;         
 
-                prevMinValue = minElement.value;
-                prevMaxValue = maxElement.value;
-
-                minValue = ShaderTool.utils.toDecimalString(minElement.value);
-                maxValue = ShaderTool.utils.toDecimalString(maxElement.value);
-
-                var min = minValue = parseFloat(minValue);
-                var max = maxValue = parseFloat(maxValue);
-
-                if(min > max){
-                    max = [min, min = max][0];
-                }
-
-                rangeElement.setAttribute('min', min);
-                rangeElement.setAttribute('max', max);
-            }
+            // } else {
+            //     prevMinValue = rangeElement.value = valueElement.innerHTML = minValue;
+            //     prevMaxValue = maxValue;   
+            // }
 
             ShaderTool.utils.DOMUtils.addEventListener(rangeElement, 'input change', function( e ){
 
-                if(minElement.value == ''){
-                    minElement.value = prevMinValue;
-                }
-                if(maxElement.value == ''){
-                    maxElement.value = prevMaxValue;
-                }
+                //if(hasMinMaxElements){
+                    if(minElement.value == ''){
+                        minElement.value = prevMinValue;
+                    }
+                    if(maxElement.value == ''){
+                        maxElement.value = prevMaxValue;
+                    }
 
-                if(minValue > maxValue){
-                    prevMinValue = minElement.value = maxValue;
-                    prevMaxValue = maxElement.value = minValue;
-                }
+                    if(minValue > maxValue){
+                        prevMinValue = minElement.value = maxValue;
+                        prevMaxValue = maxElement.value = minValue;
+                    }
+                //}
 
                 valueElement.innerHTML = rangeElement.value;
 
                 changeHandler && changeHandler(rangeElement.value);
             });
 
-            ShaderTool.utils.DOMUtils.addEventListener([minElement, maxElement], 'keydown input change', function( e ){
-                if(!ShaderTool.utils.isNumberKey( e )){
-                    e.preventDefault();
-                    return false;
-                }
-                updateRangeSettings();
-            });
+            //if(hasMinMaxElements){
 
-            updateRangeSettings();
+                function updateRangeSettings(){
+                    if(minElement.value == '' || maxElement.value == ''){
+                        return;
+                    }
+
+                    prevMinValue = minElement.value;
+                    prevMaxValue = maxElement.value;
+
+                    minValue = ShaderTool.utils.toDecimalString(minElement.value);
+                    maxValue = ShaderTool.utils.toDecimalString(maxElement.value);
+
+                    var min = minValue = parseFloat(minValue);
+                    var max = maxValue = parseFloat(maxValue);
+
+                    if(min > max){
+                        max = [min, min = max][0];
+                    }
+
+                    rangeElement.setAttribute('min', min);
+                    rangeElement.setAttribute('max', max);
+                }
+
+                ShaderTool.utils.DOMUtils.addEventListener([minElement, maxElement], 'keydown input change', function( e ){
+                    if(!ShaderTool.utils.isNumberKey( e )){
+                        e.preventDefault();
+                        return false;
+                    }
+                    updateRangeSettings();
+                });
+
+                updateRangeSettings();
+            // }
+
         }
     }
 
