@@ -193,8 +193,8 @@ uniform vec2 uv2_resolution;
 uniform sampler2D us2_frame;
 varying vec2 vv2_v;
 
-uniform float slide; //slide{"default": 0, "min": 0, "max": 10, "step": 0.01}
-uniform vec3 color1; //color{"default": 0, "min": 0, "max": 1, "step": 0.01}
+//uniform float slide; //slide{"default": 0, "min": 0, "max": 10, "step": 0.01}
+//uniform vec3 color1; //color{"default": 0, "min": 0, "max": 1, "step": 0.01}
 
 float hash(in float x) { return fract(sin(x)*265871.1723); }
 float hash(in vec2 x) { return hash(dot(x,vec2(11.,313.))); }

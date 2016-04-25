@@ -25,7 +25,7 @@ var ShaderTool = new (function ShaderTool(){
         self.modules.Ticker.init();
         self.modules.GUIHelper.init();
         self.modules.UniformControls.init();
-        self.modules.Controls.init();
+        // self.modules.Controls.init();
         self.modules.Editor.init();
         self.modules.Rendering.init();
 
@@ -379,6 +379,11 @@ ShaderTool.modules.Ticker = (function(){
                 activeState = true;
                 return this;
             }
+
+            this.reset = function(){
+                elapsedTime = 0;
+            }
+
             this.timeScale = function( value ){
                 if(ShaderTool.utils.isSet(value)){ timeScale = value; }
                 return timeScale;
@@ -395,12 +400,12 @@ ShaderTool.modules.Ticker = (function(){
                 var delta = (nowTime - prevTime) * timeScale;
                 prevTime = nowTime;
 
-                elapsedTime += delta;
-
             	if(skippedFrames < maxSkipFrames){
             		skippedFrames++;
             	} else {
 	                if(activeState){
+                        elapsedTime += delta;
+
 	                    self.onTick.call(delta, elapsedTime)
 	                }            		
             	}
@@ -481,7 +486,10 @@ ShaderTool.modules.Rendering = (function(){
 	function Rendering(){}
 	Rendering.prototype = {
 		init: function(){
+
 			console.log('ShaderTool.modules.Rendering.init');
+
+            this._initSceneControls();
 
 			this._canvas = document.getElementById('st-canvas');
 			this._context = D3.createContextOnCanvas(this._canvas);
@@ -529,19 +537,39 @@ ShaderTool.modules.Rendering = (function(){
 			this._rasterizers.push(new ShaderTool.classes.Rasterizer( this._context ));
 
 			this._updateSource();
-			ShaderTool.modules.Editor.onChange.add(this._updateSource, this);
 
+			ShaderTool.modules.Editor.onChange.add(this._updateSource, this);
+            ShaderTool.modules.UniformControls.onChange.add(this._updateSource, this);
 			ShaderTool.modules.Ticker.onTick.add(this._render, this);
 		},
 		_updateSource: function(){
-			var source = ShaderTool.modules.Editor.getValue();
+            /*
+			var shaderSource = ShaderTool.modules.Editor.getValue();
 
 			var totalRasterizers = this._rasterizers.length;
 			for(var k=0; k<totalRasterizers; k++){
 				var rasterizer = this._rasterizers[k];
 
-				rasterizer.updateSource(source);
+				rasterizer.updateSource(shaderSource);
 			}
+
+            return;
+            */
+            var uniformSource = ShaderTool.modules.UniformControls.getUniformsCode();
+            var shaderSource = ShaderTool.modules.Editor.getValue();
+            var fullSource = uniformSource + '\n\n\n' + shaderSource;
+
+            if(this._fullSource == fullSource){
+                return;
+            }
+            this._fullSource = fullSource;
+
+            var totalRasterizers = this._rasterizers.length;
+            for(var k=0; k<totalRasterizers; k++){
+                var rasterizer = this._rasterizers[k];
+
+                rasterizer.updateSource(fullSource);
+            }
 		},
 		_setResolution: function (width, height) {
 			if (!this._resolution) {
@@ -560,35 +588,88 @@ ShaderTool.modules.Rendering = (function(){
 
 			this._resolution = [width, height];
 		},
-		_getPreviousFrame: function () {
-			return this._texture[this._writePosition];
-		},
-		_getResolution: function () {
-			return this._resolution;
-		},
-		_getDestination: function () {
-			return { framebuffer: framebuffer[this._writePosition] };
-		},	
+        _initSceneControls: function(){
+            var self = this;
+
+            this.dom = {};
+
+            this.dom.playButton = document.getElementById('st-play');
+            this.dom.pauseButton = document.getElementById('st-pause');
+            this.dom.rewindButton = document.getElementById('st-rewind');
+            this.dom.timescaleRange = document.getElementById('st-timescale');
+            this.dom.renderWidthLabel = document.getElementById('st-renderwidth');
+            this.dom.renderHeightLabel = document.getElementById('st-renderheight');
+            this.dom.sceneTimeLabel = document.getElementById('st-scenetime');
+
+            //var addUniformNameInput = document.getElementById('st-add-uniform-name');
+            //var addUniformTypeSelect = document.getElementById('st-add-uniform-type');
+            //var addUniformSubmit = document.getElementById('st-add-uniform-submit');
+
+            function setPlayingState( state ){
+                if(state){
+                    ShaderTool.modules.Ticker.start();
+
+                    self.dom.playButton.style.display = 'none';
+                    self.dom.pauseButton.style.display = '';
+                } else {
+                    ShaderTool.modules.Ticker.stop();
+
+                    self.dom.playButton.style.display = '';
+                    self.dom.pauseButton.style.display = 'none';
+                }
+            }
+
+            ShaderTool.utils.DOMUtils.addEventListener(this.dom.playButton, 'mousedown', function( e ){
+                e.preventDefault();
+                setPlayingState( true );
+            });
+
+            ShaderTool.utils.DOMUtils.addEventListener(this.dom.pauseButton, 'mousedown', function( e ){
+                e.preventDefault();
+                setPlayingState( false );
+            });
+
+            ShaderTool.utils.DOMUtils.addEventListener(this.dom.rewindButton, 'mousedown', function( e ){
+                e.preventDefault();
+                ShaderTool.modules.Ticker.reset();
+            });
+
+            this.dom.timescaleRange.setAttribute('step', '0.001');
+            this.dom.timescaleRange.setAttribute('min', '0.001');
+            this.dom.timescaleRange.setAttribute('max', '10');
+            this.dom.timescaleRange.setAttribute('value', '1');
+
+            ShaderTool.utils.DOMUtils.addEventListener(this.dom.timescaleRange, 'input change', function( e ){
+                ShaderTool.modules.Ticker.timeScale( parseFloat(self.dom.timescaleRange.value) )
+            });
+
+            setPlayingState( true );
+        },
 		_render: function( delta, elapsedTime ){
 
 			// To seconds:
 			delta = delta * 0.001;
 			elapsedTime = elapsedTime * 0.001;
 
+            this.dom.sceneTimeLabel.innerHTML = elapsedTime.toFixed(2);;
+
 			if (this._canvas.clientWidth !== this._canvas.width ||
 				this._canvas.clientHeight !== this._canvas.height) {
 
-				var pixelFactor = window.devicePixelRatio || 1;
+				var pixelRatio = window.devicePixelRatio || 1;
 
-				this._canvas.width = this._canvas.clientWidth * pixelFactor;
-				this._canvas.height = this._canvas.clientHeight * pixelFactor;
+				var cWidth = this._canvas.width = this._canvas.clientWidth * pixelRatio;
+				var cHeight = this._canvas.height = this._canvas.clientHeight * pixelRatio;
 
-				this._setResolution(this._canvas.width, this._canvas.height);
+				this._setResolution(cWidth, cHeight);
+
+                this.dom.renderWidthLabel.innerHTML = cWidth + 'px';
+                this.dom.renderHeightLabel.innerHTML = cHeight + 'px';
 			}
 
-			var previosFrame = this._getPreviousFrame();
-			var resolution = this._getResolution();
-			var destination = this._getDestination();
+			var previosFrame = this._texture[this._writePosition];
+			var resolution = this._resolution;
+			var destination = { framebuffer: framebuffer[this._writePosition] };
 
 			var totalRasterizers = this._rasterizers.length;
 			for(var k=0; k<totalRasterizers; k++){
@@ -606,6 +687,12 @@ ShaderTool.modules.Rendering = (function(){
 			this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime );
 			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2( this._resolution );
 			this._source.uniforms['us2_source'] = this._context.UniformSampler(this._texture[this._writePosition]);
+
+            var uniformData = ShaderTool.modules.UniformControls.getUniformsData();
+            for(var i in uniformData){
+                this._source.uniforms[i] = uniformData[i];
+            }
+
 			this._context.rasterize(this._source);
 		}
 	}
@@ -614,39 +701,14 @@ ShaderTool.modules.Rendering = (function(){
 })();
 
 // Controls
-ShaderTool.modules.Controls = (function(){
-    function Controls(){}
-    Controls.prototype = {
-        init: function(){
-            console.log('ShaderTool.modules.Controls.init');
-
-            this._controls = [];
-
-            this._initSceneControls();
-        },
-        _initSceneControls: function(){
-            var playButton = document.getElementById('st-play');
-            var pauseButton = document.getElementById('st-pause');
-            var rewindButton = document.getElementById('st-rewind');
-            var timescaleLabel = document.getElementById('st-timescale');
-            var renderWidthLabel = document.getElementById('st-renderwidth');
-            var renderHeightLabel = document.getElementById('st-renderheight');
-            var sceneTimeLabel = document.getElementById('st-scenetime');
-
-            var addUniformNameInput = document.getElementById('st-add-uniform-name');
-            var addUniformTypeSelect = document.getElementById('st-add-uniform-type');
-            var addUniformSubmit = document.getElementById('st-add-uniform-submit');
-        }
-    }
-    return new Controls();
-})();
-
 ShaderTool.modules.UniformControls = (function(){
 
     function UniformControls(){}
     UniformControls.prototype = {
         init: function(){
             console.log('ShaderTool.modules.UniformControls.init');
+
+            this.onChange = new ShaderTool.utils.Callback();
 
             this._container = document.getElementById('st-uniforms-container');
 
@@ -678,9 +740,17 @@ ShaderTool.modules.UniformControls = (function(){
             this._container.innerHTML = ''; // Clear container
 
             // Tests:
+            /*
             for(var k=0; k<totalTypes; k++){
-                this._createControl('myControl' + (k+1), UniformControls.TYPES[k] );
+                this._createControl('myControl' + (k+1), UniformControls.TYPES[k], null, true );
             }
+            */
+
+            //uniform float slide;
+            //uniform vec3 color1;
+            this._createControl('slide', UniformControls.FLOAT, null, true );
+            this._createControl('color1', UniformControls.VEC3, null, true );
+
         },
 
         getUniformsCode: function(){
@@ -694,11 +764,17 @@ ShaderTool.modules.UniformControls = (function(){
         },
 
         getUniformsData: function(){
-            // temp
-            return [];
+            var uniforms = {};
+            var totalControls = this._controls.length;
+            for(var k=0; k<totalControls; k++){
+                var control = this._controls[k];
+
+                uniforms[control.name] = control.getUniformData();
+            }
+            return uniforms;
         },
 
-        _createControl: function( name, type, defaults ){
+        _createControl: function( name, type, defaults, skipCallChangeFlag ){
             var control;
             var elementTemplate = this._templates[type];
 
@@ -737,115 +813,161 @@ ShaderTool.modules.UniformControls = (function(){
                     self._container.removeChild( element );
                 }, false);
             }
+
+            if(!skipCallChangeFlag){
+                this._callChange();
+            }
         },
         _removeControl: function( control ){
             var totalControls = this._controls.length;
             for(var k=0; k<totalControls; k++){
                 if(this._controls[k] === control){
                     this._controls.splice(k, 1);
-                    return;
+                    break;
                 }
             }
+            this._callChange();
+        },
+        _callChange: function(){
+            console.log('Uniform controls changed');
+            this.onChange.call();
         },
         _createFloat: function( name, element, defaults ){
-            var controller = {
+            var uniformValue = 0;
+            var self = this;
+
+            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
+                uniformValue = value;
+                self._callChange();
+            });
+
+            return {
+                name: name,
                 getUniformCode: function(){
                     return 'uniform float ' + name + ';'
                 },
                 getUniformData: function(){
-                    return {};
+                    return uniformValue;
                 }
             }
-
-            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
-                console.log( value );
-            });
-
-            return controller;
         },
         _createVec2: function( name, element, defaults ){
-            var controller = {
+            var uniformValue = [0,0];
+            var self = this;
+
+            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
+                uniformValue[0] = value;
+                self._callChange();
+            });
+            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
+                uniformValue[1] = value;
+                self._callChange();
+            });
+
+            return {
+                name: name,
                 getUniformCode: function(){
                     return 'uniform vec2 ' + name + ';'
                 },
                 getUniformData: function(){
-                    return {};
+                    return uniformValue;
                 }
             }
-            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
-                console.log( value );
-            });
-            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
-                console.log( value );
-            });
         },
         _createVec3: function( name, element, defaults ){
-            var controller = {
+            var uniformValue = [0,0,0];
+            var self = this;
+
+            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
+                uniformValue[0] = value;
+                self._callChange();
+            });
+            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
+                uniformValue[1] = value;
+                self._callChange();
+            });
+            this._initRangeElementGroup(element, '3', 0, 1, function( value ){
+                uniformValue[2] = value;
+                self._callChange();
+            });
+
+            return {
+                name: name,
                 getUniformCode: function(){
                     return 'uniform vec3 ' + name + ';'
                 },
                 getUniformData: function(){
-                    return {};
+                    return uniformValue;
                 }
             }
-            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
-                console.log( value );
-            });
-            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
-                console.log( value );
-            });
-            this._initRangeElementGroup(element, '3', 0, 1, function( value ){
-                console.log( value );
-            });
         },
         _createVec4: function( name, element, defaults ){
-            var controller = {
+            var uniformValue = [0,0,0,0];
+            var self = this;
+
+            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
+                uniformValue[0] = value;
+                self._callChange();
+            });
+            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
+                uniformValue[1] = value;
+                self._callChange();
+            });
+            this._initRangeElementGroup(element, '3', 0, 1, function( value ){
+                uniformValue[2] = value;
+                self._callChange();
+            });
+            this._initRangeElementGroup(element, '4', 0, 1, function( value ){
+                uniformValue[3] = value;
+                self._callChange();
+            });
+
+            return {
+                name: name,
                 getUniformCode: function(){
                     return 'uniform vec4 ' + name + ';'
                 },
                 getUniformData: function(){
-                    return {};
+                    return uniformValue;
                 }
             }
-            this._initRangeElementGroup(element, '1', 0, 1, function( value ){
-                console.log( value );
-            });
-            this._initRangeElementGroup(element, '2', 0, 1, function( value ){
-                console.log( value );
-            });
-            this._initRangeElementGroup(element, '3', 0, 1, function( value ){
-                console.log( value );
-            });
-            this._initRangeElementGroup(element, '4', 0, 1, function( value ){
-                console.log( value );
-            });
         },
         _createColor3: function( name, element, defaults ){
-            var controller = {
+            var uniformValue = this._initColorSelectElementGroup( element, false, function( value ){
+                uniformValue = value;
+                self._callChange();
+            })
+            var self = this;
+
+            return {
+                name: name,
                 getUniformCode: function(){
                     return 'uniform vec3 ' + name + ';'
                 },
                 getUniformData: function(){
-                    return {};
+                    return uniformValue;
                 }
             }
-            this._initColorSelectElementGroup( element, false, function( value ){
-                console.log( value );
-            })
         },
         _createColor4: function( name, element, defaults ){
-            var controller = {
+            var uniformValue = this._initColorSelectElementGroup( element, true, function( value ){
+                uniformValue = value;
+                self._callChange();
+            })
+            var self = this;
+
+            return {
+                name: name,
                 getUniformCode: function(){
-                    return 'uniform vec4 ' + name + ';'
+                    return 'uniform vec3 ' + name + ';'
                 },
                 getUniformData: function(){
-                    return {};
+                    return uniformValue;
                 }
             }
-            this._initColorSelectElementGroup( element, true, function( value ){
-                console.log( value );
-            })
         },
+
+        //
         _initColorSelectElementGroup: function( element, useAlpha, changeHandler ){
             var colorElement = element.querySelector('[data-color]');
 
@@ -871,7 +993,7 @@ ShaderTool.modules.UniformControls = (function(){
 
             if(useAlpha){
                 var rangeElement = element.querySelector('[data-range]');
-                
+
                 rangeElement.setAttribute('min', '0');
                 rangeElement.setAttribute('max', '255');
                 rangeElement.setAttribute('step', '1');
@@ -882,6 +1004,8 @@ ShaderTool.modules.UniformControls = (function(){
                     callHandler();
                 })
             }
+
+            return value;
         },
         _initRangeElementGroup: function( element, attrIndex, minValue, maxValue, changeHandler, stepValue ){
             var minValue = ShaderTool.utils.isNumber(minValue) ? minValue : 0;
@@ -965,7 +1089,6 @@ ShaderTool.modules.UniformControls = (function(){
 
                 updateRangeSettings();
             // }
-
         }
     }
 
@@ -1016,7 +1139,7 @@ ShaderTool.classes.Rasterizer = (function(){
 				});
 				this._source.program = newProgram;
 			} catch( e ){
-				console.log('Error updating Rasterizer fragmentSource: ' + e);
+				console.log('Error updating Rasterizer fragmentSource: ' + e.message);
 				savePrevProgramFlag = false;
 
 				if(this._prevProgram){
