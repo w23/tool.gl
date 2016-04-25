@@ -152,7 +152,10 @@ ShaderTool.utils = {
         } else {
             // if (charCode > 31 && (charCode < 48 || charCode > 57)){
             if(charCode > 31 && (charCode < 48 || charCode > 57) && !(charCode == 46 || charCode == 8)){
-                return false;
+                if(charCode < 96 && charCode > 105){
+                    return false;
+                }
+                
             }
         }
         return true;
@@ -715,6 +718,18 @@ ShaderTool.modules.UniformControls = (function(){
 
             this.onChange = new ShaderTool.utils.Callback();
 
+            /*
+            var self = this;
+            this._callChange = ShaderTool.utils.throttle(function(){
+                self._changed = true;
+                self.onChange.call();
+            }, 1000 / 60 * 2);
+            */
+            this._callChange = function(){
+                this._changed = true;
+                this.onChange.call();
+            }
+
             this._container = document.getElementById('st-uniforms-container');
 
             this._controls = [];
@@ -756,8 +771,8 @@ ShaderTool.modules.UniformControls = (function(){
             //uniform float slide;
             //uniform vec3 color1;
             this._createControl('slide', UniformControls.FLOAT, null, true );
+            // this._createControl('color1', UniformControls.COLOR3, null, true );
             this._createControl('color1', UniformControls.VEC3, null, true );
-
         },
 
         getUniformsCode: function(){
@@ -787,8 +802,16 @@ ShaderTool.modules.UniformControls = (function(){
 
                 if(control.type == UniformControls.FLOAT){
                     this._uniforms[control.name] = this._context.UniformFloat(value);
-                } else if(control.type == UniformControls.VEC3){
+
+                } else if(control.type == UniformControls.VEC2){
+                    this._uniforms[control.name] = this._context.UniformVec2(value);
+
+                } else if(control.type == UniformControls.VEC3 || control.type == UniformControls.COLOR3){
                     this._uniforms[control.name] = this._context.UniformVec3(value);
+
+                } else if(control.type == UniformControls.VEC4 || control.type == UniformControls.COLOR4){
+                    this._uniforms[control.name] = this._context.UniformVec4(value);
+
                 }
 
             }
@@ -857,12 +880,21 @@ ShaderTool.modules.UniformControls = (function(){
             }
             this._callChange();
         },
-        _callChange: function(){
-            console.log('Uniform controls changed');
-            this._changed = true;
-
-            this.onChange.call();
-        },
+        //_callChangeImmedaite: function(){
+        //    this.onChange.call();
+        //},
+        //_callChange: function(){
+//        //    console.log('Uniform controls changed');
+//        //    this._changed = true;
+//
+//        //    clearTimeout(this._callChangeTimeout);
+//
+        //    var self = this;
+        //    this._callChangeTimeout = setTimeout(function(){
+        //        self.onChange.call();
+        //    }, 150)
+        //    // this.onChange.call();
+        //},
         _createFloat: function( name, element, defaults ){
             var uniformValue = 0;
             var self = this;
@@ -964,6 +996,7 @@ ShaderTool.modules.UniformControls = (function(){
             var self = this;
             var uniformValue = this._initColorSelectElementGroup( element, false, function( value ){
                 uniformValue = value;
+
                 self._callChange();
             })
             
@@ -1124,7 +1157,7 @@ ShaderTool.modules.UniformControls = (function(){
     UniformControls.VEC4 = 'vec4';
     UniformControls.COLOR3 = 'color3';
     UniformControls.COLOR4 = 'color4';
-    UniformControls.TYPES = [UniformControls.FLOAT, UniformControls.VEC2, UniformControls.VEC3, UniformControls.VEC4, UniformControls.COLOR3, UniformControls.COLOR4]
+    UniformControls.TYPES = [UniformControls.FLOAT, UniformControls.VEC2, UniformControls.VEC3, UniformControls.VEC4, UniformControls.COLOR3, UniformControls.COLOR4];
 
     return new UniformControls();
 })();
