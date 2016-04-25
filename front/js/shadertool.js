@@ -461,9 +461,13 @@ ShaderTool.modules.Editor = (function(){
 
             var self = this;
 
-            this._editor.on('change', function(){
-            	self.onChange.call();
-            });
+            //this._editor.on('change', function(){
+                //self.onChange.call();
+            //});
+
+            this._editor.on('change', ShaderTool.utils.throttle(function(){
+                self.onChange.call();
+            }, 1000 / 60 * 10));
         },
         getValue: function(){
             return this._editor.getSession().getValue();
