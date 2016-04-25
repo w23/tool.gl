@@ -1052,7 +1052,7 @@ ShaderTool.modules.UniformControls = (function(){
 
                 valueElement.innerHTML = rangeElement.value;
 
-                changeHandler && changeHandler(rangeElement.value);
+                changeHandler && changeHandler( parseFloat(rangeElement.value) );
             });
 
             //if(hasMinMaxElements){
