@@ -1033,7 +1033,7 @@ ShaderTool.modules.UniformControls = (function(){
             var value = [0,0,0];
 
             if(useAlpha){
-                value[3] = 255;
+                value[3] = 1;
             }
 
             function callHandler(){
@@ -1054,9 +1054,9 @@ ShaderTool.modules.UniformControls = (function(){
                 var rangeElement = element.querySelector('[data-range]');
 
                 rangeElement.setAttribute('min', '0');
-                rangeElement.setAttribute('max', '255');
+                rangeElement.setAttribute('max', '1');
                 rangeElement.setAttribute('step', '1');
-                rangeElement.setAttribute('value', '255');
+                rangeElement.setAttribute('value', '1');
 
                 ShaderTool.utils.DOMUtils.addEventListener(rangeElement, 'input change', function( e ){
                     value[3] = parseInt(rangeElement.value);
