@@ -536,6 +536,8 @@ ShaderTool.modules.Rendering = (function(){
 			this._rasterizers = [];
 			this._rasterizers.push(new ShaderTool.classes.Rasterizer( this._context ));
 
+            ShaderTool.modules.UniformControls.setContext(this._context)
+
 			this._updateSource();
 
 			ShaderTool.modules.Editor.onChange.add(this._updateSource, this);
@@ -543,26 +545,15 @@ ShaderTool.modules.Rendering = (function(){
 			ShaderTool.modules.Ticker.onTick.add(this._render, this);
 		},
 		_updateSource: function(){
-            /*
-			var shaderSource = ShaderTool.modules.Editor.getValue();
 
-			var totalRasterizers = this._rasterizers.length;
-			for(var k=0; k<totalRasterizers; k++){
-				var rasterizer = this._rasterizers[k];
-
-				rasterizer.updateSource(shaderSource);
-			}
-
-            return;
-            */
             var uniformSource = ShaderTool.modules.UniformControls.getUniformsCode();
             var shaderSource = ShaderTool.modules.Editor.getValue();
-            var fullSource = uniformSource + '\n\n\n' + shaderSource;
+            var fullSource = 'precision mediump float;\n\n' + uniformSource + '\n\n\n' + shaderSource;
 
-            if(this._fullSource == fullSource){
-                return;
-            }
-            this._fullSource = fullSource;
+            //if(this._fullSource == fullSource){
+            //    return;
+            //}
+            //this._fullSource = fullSource;
 
             var totalRasterizers = this._rasterizers.length;
             for(var k=0; k<totalRasterizers; k++){
@@ -684,14 +675,23 @@ ShaderTool.modules.Rendering = (function(){
 
 			this._writePosition = (this._writePosition + 1) & 1;
 
+
+            this._source.uniforms = ShaderTool.modules.UniformControls.getUniformsData();
+
+            this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime );
+            this._source.uniforms['uv2_resolution'] = this._context.UniformVec2( this._resolution );
+            this._source.uniforms['us2_source'] = this._context.UniformSampler(this._texture[this._writePosition]);
+
+            /*
 			this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime );
 			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2( this._resolution );
 			this._source.uniforms['us2_source'] = this._context.UniformSampler(this._texture[this._writePosition]);
 
-            var uniformData = ShaderTool.modules.UniformControls.getUniformsData();
-            for(var i in uniformData){
-                this._source.uniforms[i] = uniformData[i];
+            var uniformsData = ShaderTool.modules.UniformControls.getUniformsData();
+            for(var i in uniformsData){
+                this._source.uniforms[i] = uniformsData[i];
             }
+            */
 
 			this._context.rasterize(this._source);
 		}
@@ -713,6 +713,8 @@ ShaderTool.modules.UniformControls = (function(){
             this._container = document.getElementById('st-uniforms-container');
 
             this._controls = [];
+            this._uniforms = {};
+            this._changed = false;
 
             this._createMethods = {};
             this._createMethods[UniformControls.FLOAT] = this._createFloat;
@@ -764,14 +766,35 @@ ShaderTool.modules.UniformControls = (function(){
         },
 
         getUniformsData: function(){
-            var uniforms = {};
+            if(!this._context){
+                return this._uniforms;
+            }
+            if(!this._changed){
+                return this._uniforms;
+            }
+            this._changed = false;
+            this._uniforms = {};
+            
             var totalControls = this._controls.length;
             for(var k=0; k<totalControls; k++){
                 var control = this._controls[k];
+                var value = control.getUniformValue();
 
-                uniforms[control.name] = control.getUniformData();
+                if(control.type == UniformControls.FLOAT){
+                    this._uniforms[control.name] = this._context.UniformFloat(value);
+                    console.log(value)
+                } else if(control.type == UniformControls.VEC3){
+                    this._uniforms[control.name] = this._context.UniformVec3(value);
+                    console.log(value)
+                }
+
             }
-            return uniforms;
+
+            return this._uniforms;
+        },
+
+        setContext: function( context ){
+            this._context = context;
         },
 
         _createControl: function( name, type, defaults, skipCallChangeFlag ){
@@ -792,6 +815,9 @@ ShaderTool.modules.UniformControls = (function(){
                 throw new ShaderTool.Exception('Unknown uniform control type: ' + type);
                 return null;
             }
+
+            control.name = name;
+            control.type = type;
 
             this._controls.push(control);
             this._container.appendChild(element);
@@ -830,6 +856,7 @@ ShaderTool.modules.UniformControls = (function(){
         },
         _callChange: function(){
             console.log('Uniform controls changed');
+            this._changed = true;
             this.onChange.call();
         },
         _createFloat: function( name, element, defaults ){
@@ -842,11 +869,10 @@ ShaderTool.modules.UniformControls = (function(){
             });
 
             return {
-                name: name,
                 getUniformCode: function(){
                     return 'uniform float ' + name + ';'
                 },
-                getUniformData: function(){
+                getUniformValue: function(){
                     return uniformValue;
                 }
             }
@@ -865,11 +891,10 @@ ShaderTool.modules.UniformControls = (function(){
             });
 
             return {
-                name: name,
                 getUniformCode: function(){
                     return 'uniform vec2 ' + name + ';'
                 },
-                getUniformData: function(){
+                getUniformValue: function(){
                     return uniformValue;
                 }
             }
@@ -892,11 +917,10 @@ ShaderTool.modules.UniformControls = (function(){
             });
 
             return {
-                name: name,
                 getUniformCode: function(){
                     return 'uniform vec3 ' + name + ';'
                 },
-                getUniformData: function(){
+                getUniformValue: function(){
                     return uniformValue;
                 }
             }
@@ -923,11 +947,10 @@ ShaderTool.modules.UniformControls = (function(){
             });
 
             return {
-                name: name,
                 getUniformCode: function(){
                     return 'uniform vec4 ' + name + ';'
                 },
-                getUniformData: function(){
+                getUniformValue: function(){
                     return uniformValue;
                 }
             }
@@ -940,11 +963,10 @@ ShaderTool.modules.UniformControls = (function(){
             var self = this;
 
             return {
-                name: name,
                 getUniformCode: function(){
                     return 'uniform vec3 ' + name + ';'
                 },
-                getUniformData: function(){
+                getUniformValue: function(){
                     return uniformValue;
                 }
             }
@@ -957,11 +979,10 @@ ShaderTool.modules.UniformControls = (function(){
             var self = this;
 
             return {
-                name: name,
                 getUniformCode: function(){
                     return 'uniform vec3 ' + name + ';'
                 },
-                getUniformData: function(){
+                getUniformValue: function(){
                     return uniformValue;
                 }
             }
