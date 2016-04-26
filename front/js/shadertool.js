@@ -22,8 +22,10 @@ var ShaderTool = new (function ShaderTool(){
 
     var self = this;
     catchReady(function(){
+
         self.modules.Ticker.init();
         self.modules.GUIHelper.init();
+        self.modules.FSHelper.init();
         self.modules.UniformControls.init();
         // self.modules.Controls.init();
         self.modules.Editor.init();
@@ -328,6 +330,34 @@ ShaderTool.utils.DOMUtils = (function(){
 
 
 // Modules
+// FSHelper
+ShaderTool.modules.FSHelper = (function(){
+    function FSHelper(){};
+    FSHelper.prototype = {
+        init: function(){
+
+        },
+        request: function( element ){
+            if (element.requestFullscreen) {
+                element.requestFullscreen();
+            } else if (element.mozRequestFullScreen) {
+                element.mozRequestFullScreen();
+            } else if (element.webkitRequestFullScreen) {
+                element.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
+            }
+        },
+        exit: function(){
+            if (document.cancelFullScreen) {
+                document.cancelFullScreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitCancelFullScreen) {
+                document.webkitCancelFullScreen();
+            }
+        }
+    }
+    return new FSHelper();
+})();
 
 // Ticker
 ShaderTool.modules.Ticker = (function(){
@@ -497,10 +527,10 @@ ShaderTool.modules.Rendering = (function(){
 
 			console.log('ShaderTool.modules.Rendering.init');
 
-            this._initSceneControls();
-
 			this._canvas = document.getElementById('st-canvas');
 			this._context = D3.createContextOnCanvas(this._canvas);
+
+            this._initSceneControls();
 
             // this._sourceChanged = true;
 
@@ -603,6 +633,7 @@ ShaderTool.modules.Rendering = (function(){
             this.dom.playButton = document.getElementById('st-play');
             this.dom.pauseButton = document.getElementById('st-pause');
             this.dom.rewindButton = document.getElementById('st-rewind');
+            this.dom.fullscreenButton = document.getElementById('st-fullscreen');
             this.dom.timescaleRange = document.getElementById('st-timescale');
             this.dom.renderWidthLabel = document.getElementById('st-renderwidth');
             this.dom.renderHeightLabel = document.getElementById('st-renderheight');
@@ -637,6 +668,15 @@ ShaderTool.modules.Rendering = (function(){
                 ShaderTool.modules.Ticker.reset();
             });
 
+            ShaderTool.utils.DOMUtils.addEventListener(this.dom.fullscreenButton, 'mousedown', function( e ){
+                e.preventDefault();
+                ShaderTool.modules.FSHelper.request(self._canvas);
+            });            
+            ShaderTool.utils.DOMUtils.addEventListener(this._canvas, 'dblclick', function( e ){
+                e.preventDefault();
+                ShaderTool.modules.FSHelper.exit();
+            }); 
+
             this.dom.timescaleRange.setAttribute('step', '0.001');
             this.dom.timescaleRange.setAttribute('min', '0.001');
             this.dom.timescaleRange.setAttribute('max', '10');
@@ -645,6 +685,7 @@ ShaderTool.modules.Rendering = (function(){
             ShaderTool.utils.DOMUtils.addEventListener(this.dom.timescaleRange, 'input change', function( e ){
                 ShaderTool.modules.Ticker.timeScale( parseFloat(self.dom.timescaleRange.value) )
             });
+
 
             setPlayingState( true );
         },
@@ -779,6 +820,7 @@ ShaderTool.modules.UniformControls = (function(){
 
             this._createControl('test', UniformControls.FLOAT, null, true );
             this._createControl('test2', UniformControls.FLOAT, null, true );
+            this._createControl('test3', UniformControls.FLOAT, null, true );
 
             //
             this._initCreateControls();

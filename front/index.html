@@ -25,7 +25,9 @@
 			<div class="content">
 				<div class="content__cols">
 					<div class="content__col canvas">
-						<canvas id="st-canvas" width="960" height="540" class="glcanvas">Your browser does not support canvas :(</canvas>
+						<div class="canvas-container">
+							<canvas id="st-canvas" width="960" height="540" class="glcanvas">Your browser does not support canvas :(</canvas>
+						</div>
 						<div class="controls">
 							<!--  GLobal control panel  -->
 							<div class="controls__row _top controls-top clearfix">
@@ -33,6 +35,7 @@
 									<div	id="st-play"			class="control _play"	title="Play"></div>
 									<div	id="st-pause"			class="control _pause"	title="Pause"></div>
 									<div	id="st-rewind"			class="control _rewind"	title="Rewind"></div>
+									<div	id="st-fullscreen"		class="control _fullscreen"	title="Fullscreen"></div>
 									<input	id="st-timescale"		class="control range"	title="Time scale" type="range"/>
 									<div	id="st-renderwidth"		class="label _locked"	title="Render width">550</div>
 									<div	id="st-renderheight"	class="label _locked"	title="Render height">350</div>
@@ -230,7 +233,7 @@ float trace(vec3 O, vec3 D, float L) {
 		vec3 p = O + D * L;
 		float d = map(p);
 		L += d;
-		if (d < .01)
+		if (d < test3)
 			break;
 	}
 	return L;
