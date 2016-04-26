@@ -995,6 +995,8 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
         _clearControls: function(skipCallChangeFlag){
+            return;
+
             while(this._controls.length){
                 this._removeControl(this._controls.length-1, true);
             }
@@ -1225,9 +1227,9 @@ ShaderTool.modules.UniformControls = (function(){
             ShaderTool.utils.DOMUtils.addEventListener(colorElement, 'change', function( e ){
                 var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(colorElement.value);
 
-                initialData[0] = parseFloat(result[1], 16) / 256;
-                initialData[1] = parseFloat(result[2], 16) / 256;
-                initialData[2] = parseFloat(result[3], 16) / 256;
+                initialData[0] = parseInt( result[1], 16 ) / 256;
+                initialData[1] = parseInt( result[2], 16 ) / 256;
+                initialData[2] = parseInt( result[3], 16 ) / 256;
 
                 changeHandler();
             });
@@ -1242,8 +1244,6 @@ ShaderTool.modules.UniformControls = (function(){
 
                 ShaderTool.utils.DOMUtils.addEventListener(rangeElement, 'input change', function( e ){
                     initialData[3] = parseFloat(rangeElement.value);
-
-                    console.log(initialData[3])
 
                     changeHandler();
                 })
