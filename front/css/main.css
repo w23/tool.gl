@@ -337,6 +337,7 @@ body {
 	top: -1px;
 }
 .control._rewind:before{ content: "R"; }
+.control._fullscreen:before{ content: "F"; }
 
 .label {
 	background: rgba(0, 0, 0, 0.35);

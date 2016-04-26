@@ -45,7 +45,10 @@ ShaderTool.utils = {
         return typeof object != 'undefined' && object != null
     },
     isArray: function( object ){
-        return Object.prototype.toString.call(object) === '[object Array]';
+        var str = Object.prototype.toString.call(object);
+        return str == '[object Array]' || str == '[object Float32Array]';
+
+        // return Object.prototype.toString.call(object) === '[object Array]';
     },
     isArrayLike: function( object ){
         if(this.isArray(object)){ return true; }
@@ -764,7 +767,7 @@ ShaderTool.modules.UniformControls = (function(){
             this.onChangeUniformList = new ShaderTool.utils.Callback();
             this.onChangeUniformValue = new ShaderTool.utils.Callback();
 
-            this._changed = false;
+            this._changed = true;
 
             this._callChangeUniformList = function(){
                 this._changed = true;
@@ -814,16 +817,19 @@ ShaderTool.modules.UniformControls = (function(){
 
             //uniform float slide;
             //uniform vec3 color1;
-            this._createControl('slide', UniformControls.FLOAT, null, true );
+            this._createControl('slide', UniformControls.FLOAT, [{max: 10, value: 10}], true );
             // this._createControl('color1', UniformControls.COLOR3, null, true );
-            this._createControl('color1', UniformControls.VEC3, null, true );
+            this._createControl('color1', UniformControls.VEC3, [{value:1},{},{}], true );
 
             this._createControl('test', UniformControls.FLOAT, null, true );
-            this._createControl('test2', UniformControls.FLOAT, null, true );
-            this._createControl('test3', UniformControls.FLOAT, null, true );
+            this._createControl('test2', UniformControls.FLOAT, [{value: 1}], true );
+            this._createControl('test3', UniformControls.FLOAT, [{ value: 1 }], true );
 
             //
             this._initCreateControls();
+
+            //this._callChangeUniformList();
+            //this._callChangeUniformValue();
         },
 
         /* Public methods */
@@ -831,20 +837,17 @@ ShaderTool.modules.UniformControls = (function(){
             var result = [];
             var totalControls = this._controls.length;
             for(var k=0; k<totalControls; k++){
-                var control = this._controls[k];
-                result.push(control.getUniformCode());
+                result.push(this._controls[k].code);
             }
             return result.join('\n');
         },
 
         getUniformsData: function( context ){
-            //if(!this._context){
-            //    return this._uniforms;
-            //}
             if(!this._changed){
                 return this._uniforms;
             }
             this._changed = false;
+
             this._uniforms = {};
             
             var totalControls = this._controls.length;
@@ -868,6 +871,8 @@ ShaderTool.modules.UniformControls = (function(){
             }
 
             return this._uniforms;
+
+            return this._uniforms
         },
 
         getData: function(){
@@ -933,6 +938,8 @@ ShaderTool.modules.UniformControls = (function(){
 
             var createMethod = this._createMethods[type];
             if( createMethod ){
+                initialData = ShaderTool.utils.isArray(initialData) ? initialData : [];
+
                 control = createMethod.apply(this, [name, element, initialData] );
             } else {
                 throw new ShaderTool.Exception('Unknown uniform control type: ' + type);
@@ -997,26 +1004,27 @@ ShaderTool.modules.UniformControls = (function(){
         },
 
         _createFloat: function( name, element, initialData ){
-            var uniformValue = 0;
+            
             var self = this;
 
-            var saveData = [{}];
+            var saveData = [ this._prepareRangeData( initialData[0]) ];
 
-            this._initRangeElementGroup(element, '1', 0, 1, function( value, min, max ){
+            var uniformValue = saveData[0].value;
+
+            this._initRangeElementGroup(element, '1', saveData[0], function( value, min, max ){
                 uniformValue = value;
 
                 var dataObject = saveData[0];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
 
             return {
-                getUniformCode: function(){
-                    return 'uniform float ' + name + ';'
-                },
+                code: 'uniform float ' + name + ';',
+
                 getUniformValue: function(){
                     return uniformValue;
                 },
@@ -1027,35 +1035,38 @@ ShaderTool.modules.UniformControls = (function(){
         },
         _createVec2: function( name, element, initialData ){
             var self = this;
-            var uniformValue = [0,0];
+            
+            var saveData = [
+                            this._prepareRangeData( initialData[0] ),
+                            this._prepareRangeData( initialData[1] )
+                            ];
 
-            var saveData = [{}, {}];
+            var uniformValue = [saveData[0].value, saveData[1].value];
 
-            this._initRangeElementGroup(element, '1', 0, 1, function( value, min, max ){
+            this._initRangeElementGroup(element, '1', saveData[0], function( value, min, max ){
                 uniformValue[0] = value;
 
                 var dataObject = saveData[0];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
-            this._initRangeElementGroup(element, '2', 0, 1, function( value, min, max ){
+            this._initRangeElementGroup(element, '2', saveData[1], function( value, min, max ){
                 uniformValue[1] = value;
 
                 var dataObject = saveData[1];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
 
             return {
-                getUniformCode: function(){
-                    return 'uniform vec2 ' + name + ';'
-                },
+                code: 'uniform vec2 ' + name + ';',
+
                 getUniformValue: function(){
                     return uniformValue;
                 },
@@ -1066,44 +1077,49 @@ ShaderTool.modules.UniformControls = (function(){
         },
         _createVec3: function( name, element, initialData ){
             var self = this;
-            var uniformValue = [0,0,0];
-            var saveData = [{}, {}, {}];
 
-            this._initRangeElementGroup(element, '1', 0, 1, function( value, min, max ){
+            var saveData = [
+                            this._prepareRangeData( initialData[0] ),
+                            this._prepareRangeData( initialData[1] ),
+                            this._prepareRangeData( initialData[2] )
+                            ];
+
+            var uniformValue = [saveData[0].value, saveData[1].value, saveData[2].value];
+
+            this._initRangeElementGroup(element, '1', saveData[0], function( value, min, max ){
                 uniformValue[0] = value;
 
                 var dataObject = saveData[0];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
-            this._initRangeElementGroup(element, '2', 0, 1, function( value, min, max ){
+            this._initRangeElementGroup(element, '2', saveData[1], function( value, min, max ){
                 uniformValue[1] = value;
 
                 var dataObject = saveData[1];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
-            this._initRangeElementGroup(element, '3', 0, 1, function( value, min, max ){
+            this._initRangeElementGroup(element, '3', saveData[2], function( value, min, max ){
                 uniformValue[2] = value;
 
                 var dataObject = saveData[2];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
 
             return {
-                getUniformCode: function(){
-                    return 'uniform vec3 ' + name + ';'
-                },
+                code: 'uniform vec3 ' + name + ';',
+
                 getUniformValue: function(){
                     return uniformValue;
                 },
@@ -1114,54 +1130,60 @@ ShaderTool.modules.UniformControls = (function(){
         },
         _createVec4: function( name, element, initialData ){
             var self = this;
-            var uniformValue = [0,0,0,0];
-            var saveData = [{}, {}, {}];
 
-            this._initRangeElementGroup(element, '1', 0, 1, function( value, min, max ){
+            var saveData = [
+                            this._prepareRangeData( initialData[0] ),
+                            this._prepareRangeData( initialData[1] ),
+                            this._prepareRangeData( initialData[2] ),
+                            this._prepareRangeData( initialData[3] )
+                            ];
+
+            var uniformValue = [saveData[0].value, saveData[1].value, saveData[2].value, saveData[3].value];
+
+            this._initRangeElementGroup(element, '1', saveData[0], function( value, min, max ){
                 uniformValue[0] = value;
 
                 var dataObject = saveData[0];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
-            this._initRangeElementGroup(element, '2', 0, 1, function( value, min, max ){
+            this._initRangeElementGroup(element, '2', saveData[1], function( value, min, max ){
                 uniformValue[1] = value;     
 
                 var dataObject = saveData[1];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
-            this._initRangeElementGroup(element, '3', 0, 1, function( value, min, max ){
+            this._initRangeElementGroup(element, '3', saveData[2], function( value, min, max ){
                 uniformValue[2] = value;
 
                 var dataObject = saveData[2];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
-            this._initRangeElementGroup(element, '4', 0, 1, function( value, min, max ){
+            this._initRangeElementGroup(element, '4', saveData[3], function( value, min, max ){
                 uniformValue[3] = value;
 
                 var dataObject = saveData[3];
-                dataObject.value = value;
-                dataObject.min = min;
-                dataObject.max = max;
+                    dataObject.value = value;
+                    dataObject.min = min;
+                    dataObject.max = max;
 
                 self._callChangeUniformValue();
             });
 
             return {
-                getUniformCode: function(){
-                    return 'uniform vec4 ' + name + ';'
-                },
+                code: 'uniform vec4 ' + name + ';',
+
                 getUniformValue: function(){
                     return uniformValue;
                 },
@@ -1185,9 +1207,10 @@ ShaderTool.modules.UniformControls = (function(){
             })
             
             return {
-                getUniformCode: function(){
-                    return 'uniform vec3 ' + name + ';'
-                },
+                code: 'uniform vec3 ' + name + ';',
+                //getUniformCode: function(){
+                //    return 'uniform vec3 ' + name + ';'
+                //},
                 getUniformValue: function(){
                     return uniformValue;
                 },
@@ -1210,9 +1233,10 @@ ShaderTool.modules.UniformControls = (function(){
             })
 
             return {
-                getUniformCode: function(){
-                    return 'uniform vec4 ' + name + ';'
-                },
+                code: 'uniform vec4 ' + name + ';',
+                //getUniformCode: function(){
+                //    return 'uniform vec4 ' + name + ';'
+                //},
                 getUniformValue: function(){
                     return uniformValue;
                 },
@@ -1222,7 +1246,22 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
 
-        //
+        _prepareRangeData: function( inputData ){
+            inputData = typeof inputData == 'undefined' ? {} : inputData;
+            var resultData = {
+                value: 0,
+                min: 0,
+                max: 1
+            };
+
+            for(var i in resultData){
+                if(typeof inputData[i] != 'undefined'){
+                    resultData[i] = inputData[i];
+                }
+            }
+
+            return resultData;
+        },
         _initColorSelectElementGroup: function( element, useAlpha, changeHandler ){
             var colorElement = element.querySelector('[data-color]');
 
@@ -1262,9 +1301,9 @@ ShaderTool.modules.UniformControls = (function(){
 
             return value;
         },
-        _initRangeElementGroup: function( element, attrIndex, minValue, maxValue, changeHandler, stepValue ){
-            var minValue = ShaderTool.utils.isNumber(minValue) ? minValue : 0;
-            var maxValue = ShaderTool.utils.isNumber(maxValue) ? maxValue : 1;
+        _initRangeElementGroup: function( element, attrIndex, initialData, changeHandler, stepValue ){
+            var minValue = initialData.min;
+            var maxValue = initialData.max;
 
             var minElement = element.querySelector('[data-range-min-' + attrIndex + ']');// || document.createElement('input');
             var maxElement = element.querySelector('[data-range-max-' + attrIndex + ']');// || document.createElement('input');
@@ -1280,8 +1319,10 @@ ShaderTool.modules.UniformControls = (function(){
             minElement.setAttribute('title', 'Minimum value');
             maxElement.setAttribute('title', 'Maximum value');  
 
-            prevMinValue = minElement.value = rangeElement.value = valueElement.innerHTML = minValue;
-            prevMaxValue = maxElement.value = maxValue;         
+            prevMinValue = minElement.value = valueElement.innerHTML = minValue;
+            prevMaxValue = maxElement.value = maxValue;
+
+            rangeElement.value = initialData.value;   
 
             ShaderTool.utils.DOMUtils.addEventListener(rangeElement, 'input change', function( e ){
 
@@ -1299,7 +1340,7 @@ ShaderTool.modules.UniformControls = (function(){
 
                 valueElement.innerHTML = rangeElement.value;
 
-                changeHandler && changeHandler( parseFloat(rangeElement.value), minValue, maxValue );
+                changeHandler( parseFloat(rangeElement.value), minValue, maxValue );
             });
 
             function updateRangeSettings(){
