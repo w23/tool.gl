@@ -1279,9 +1279,17 @@ ShaderTool.modules.UniformControls = (function(){
 
             return resultData;
         },
-
+        _componentToHex: function(c){
+            var hex = c.toString(16);
+            return hex.length == 1 ? '0' + hex : hex;
+        },
+        _hexFromRGB: function(r, g, b){
+            return '#' + this._componentToHex(r) + this._componentToHex(g) + this._componentToHex(b);
+        },
         _initColorSelectElementGroup: function( element, useAlpha, initialData, changeHandler ){
             var colorElement = element.querySelector('[data-color]');
+
+            colorElement.value = this._hexFromRGB(initialData[0] * 256 << 0, initialData[1] * 256 << 0, initialData[2] * 256 << 0);
 
             ShaderTool.Utils.DOMUtils.addEventListener(colorElement, 'change', function( e ){
                 var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(colorElement.value);
@@ -1293,13 +1301,15 @@ ShaderTool.modules.UniformControls = (function(){
                 changeHandler();
             });
 
+            
+
             if(useAlpha){
                 var rangeElement = element.querySelector('[data-range]');
 
                 rangeElement.setAttribute('min', '0');
                 rangeElement.setAttribute('max', '1');
                 rangeElement.setAttribute('step', '0.001');
-                rangeElement.setAttribute('value', '1');
+                rangeElement.setAttribute('value', initialData[3] );
 
                 ShaderTool.Utils.DOMUtils.addEventListener(rangeElement, 'input', function( e ){
                     initialData[3] = parseFloat(rangeElement.value);
@@ -1404,6 +1414,8 @@ ShaderTool.modules.UniformControls = (function(){
 
 // SaveController
 ShaderTool.modules.SaveController = (function(){
+    var DEFAULT_CODE = '{"uniforms":[{"name":"bgcolor","type":"color3","data":[0.99609375,0.8046875,0.56640625]}],"source":"void main() {\n    gl_FragColor = vec4(bgcolor, 1.);\n}"}';
+
     function SaveController(){}
 
     SaveController.prototype = {
@@ -1413,7 +1425,10 @@ ShaderTool.modules.SaveController = (function(){
             var savedData = ShaderTool.helpers.LSHelper.getItem('lastShaderData');
             if(savedData){
                 ShaderTool.modules.Rendering.setData(savedData, true);
+            } else {
+                ShaderTool.modules.Rendering.setData(DEFAULT_CODE, true);
             }
+
             this._initSaveDialogs();
 
             ShaderTool.modules.Rendering.onChange.add( this._saveLocalState, this);
