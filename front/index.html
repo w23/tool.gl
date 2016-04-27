@@ -40,6 +40,9 @@
 									<div	id="st-renderwidth"		class="label _locked"	title="Render width">550</div>
 									<div	id="st-renderheight"	class="label _locked"	title="Render height">350</div>
 									<div	id="st-scenetime"		class="label _locked"	title="Scene time">117.65</div>
+
+									<div data-popup-opener="#st-get-code-popup" class="button">Save code</div>
+									<div data-popup-opener="#st-set-code-popup" class="button">Load code</div>
 								</div>
 								<div class="controls-row__add controls-add">
 									<input	id="st-add-uniform-name" class="controls-add__input i-text" type="text" label="Uniform name" placeholder="Uniform name" />
@@ -189,82 +192,7 @@
 						</div><!-- .controls -->
 					</div><!-- .content__col -->
 					<div class="content__col">
-						<pre id="st-editor" class="content__editor editor">
-precision mediump float;
-uniform float uf_time;
-uniform vec2 uv2_resolution;
-uniform sampler2D us2_frame;
-varying vec2 vv2_v;
-
-//uniform float slide; //slide{"default": 0, "min": 0, "max": 10, "step": 0.01}
-//uniform vec3 color1; //color{"default": 0, "min": 0, "max": 1, "step": 0.01}
-
-float hash(in float x) { return fract(sin(x)*265871.1723); }
-float hash(in vec2 x) { return hash(dot(x,vec2(11.,313.))); }
-float hash(in vec3 x) { return hash(dot(x,vec3(3.2,57.55,117.234))); }
-
-float noise(in vec3 v)
-{
-    const vec2 E = vec2(1., 0.);
-    vec3 F = floor(v), f = fract(v);
-    f *= f * (3. - 2. * f);
-    return mix(
-        mix(mix(hash(F+E.yyy), hash(F+E.xyy), f.x),
-            mix(hash(F+E.yxy), hash(F+E.xxy), f.x), f.y),
-        mix(mix(hash(F+E.yyx), hash(F+E.xyx), f.x),
-            mix(hash(F+E.yxx), hash(F+E.xxx), f.x), f.y), f.z);
-}
-
-float map(vec3 p) {
-	return length(p) - 1. + .1*sin(uf_time + 6.283*noise(p*3.));
-}
-
-vec3 N(vec3 p) {
-	vec2 e = vec2(.001, 0.);
-	return normalize(vec3(
-        map(p+e.xyy) - map(p-e.xyy),
-		map(p+e.yxy) - map(p-e.yxy),
-		map(p+e.yyx) - map(p-e.yyx)
-	));
-}
-
-float trace(vec3 O, vec3 D, float L) {
-	for (int i = 0; i < 32; ++i) {
-		vec3 p = O + D * L;
-		float d = map(p);
-		L += d;
-		if (d < test3)
-			break;
-	}
-	return L;
-}
-
-vec3 enlightDir(in vec3 n, in vec3 ed, in vec3 ld, in vec3 lc, in vec3 dc, in vec4 spec) {
-    return lc * (
-	  dc * max(0., dot(n,ld))
-	+ spec.rgb * pow(max(0.,dot(normalize(ld-ed), n)), spec.w)
-        * (spec.w + 2.) * (spec.w + 4.) / (24. * (spec.w + pow(2., -spec.w/2.)))
-	);
-}
-
-void main() {
-	vec2 uv = gl_FragCoord.xy / uv2_resolution * 2. - 1.;
-	uv.x *= uv2_resolution.x / uv2_resolution.y;
-
-	vec3 O = vec3(0., 0., 2.6);
-	vec3 D = normalize(vec3(uv, -2.));
-
-	float l = trace(O, D, 0.);
-	vec3 p = O + D * l;
-
-	vec3 color = vec3(0.);
-
-	if (l < 10.)
-		color += enlightDir(N(p), D, normalize(vec3(1.)), vec3(1.), color1.rgb, vec4(1., 1., 1., max(1., pow(slide, 3.))));
-
-	gl_FragColor = vec4(pow(color, vec3(test)), test2);
-}
-						</pre>
+						<pre id="st-editor" class="content__editor editor"></pre>
 					</div>
 				</div>
 			</div>
@@ -282,6 +210,17 @@ void main() {
 		-->
 
 	</div><!-- .wrapper -->
+
+	<div id="st-popup-overlay" class="popup-overlay">
+		<div id="st-get-code-popup" class="popup">
+			<textarea id="st-get-code-input" type="text" readonly="readonly"/></textarea>
+		</div>
+		<div id="st-set-code-popup" class="popup">
+			<textarea id="st-set-code-input" type="text" /></textarea>
+			<div id="st-set-code-submit" class="controls-add__button button _create" title="Apply code">Apply</div>
+		</div>
+	</div>
+
 	<script src="js/vendor/0.3js/D3.js"></script>
 	<script src="js/vendor/ace-builds/src-min-noconflict/ace.js"></script>
 	<script src="js/vendor/mode-glsl.js"></script>

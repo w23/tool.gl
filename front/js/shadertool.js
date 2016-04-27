@@ -29,6 +29,7 @@ var ShaderTool = new (function ShaderTool(){
         self.modules.Editor.init();
         self.modules.Rendering.init();
         self.modules.SaveController.init();
+        self.modules.PopupManager.init();
 
         document.documentElement.className = '_ready';
     });
@@ -48,6 +49,12 @@ ShaderTool.Utils = {
         return str == '[object Array]' || str == '[object Float32Array]';
 
         // return Object.prototype.toString.call(object) === '[object Array]';
+    },
+    isArrayLike: function( object ){
+        if( typeof object.length == 'number' && typeof object[0] != 'undefined' && typeof object[object.length] != 'undefined'){
+            return true;
+        }
+        return false;
     },
     isArrayLike: function( object ){
         if(this.isArray(object)){ return true; }
@@ -264,7 +271,7 @@ ShaderTool.Utils.DOMUtils = (function(){
     DOMUtils.prototype = {
         addEventListener : function(element, eventName, handler){
 
-            if(ShaderTool.Utils.isArray(element)){
+            if(ShaderTool.Utils.isArrayLike(element)){
 
                 var totalElements = element.length;
                 for(var k=0; k<totalElements; k++){
@@ -343,7 +350,10 @@ ShaderTool.helpers.LSHelper = (function(){
         setItem: function( key, data ){
             if( !ALLOW_WORK ){ return null }
 
-            this._storage.setItem( key, JSON.stringify(data) )
+            var json = JSON.stringify(data)
+            this._storage.setItem( key, json );
+
+            return json;
         },
         getItem: function( key ){
             if( !ALLOW_WORK ){ return null }
@@ -783,8 +793,9 @@ ShaderTool.modules.Rendering = (function(){
             ShaderTool.modules.UniformControls.setData( data.uniforms, true );
             ShaderTool.modules.Editor.setData( data.source, true );
             
-            
             this._updateSource( skipCallChangeFlag );
+
+            ShaderTool.helpers.Ticker.reset();
 
             if(!skipCallChangeFlag){
                 this.onChange.call();
@@ -813,6 +824,7 @@ ShaderTool.modules.UniformControls = (function(){
                 this.onChangeUniformList.call();
             }
             this._callChangeUniformValue = function(){
+
                 this._changed = true;
                 this.onChangeUniformValue.call();
             }
@@ -1058,7 +1070,7 @@ ShaderTool.modules.UniformControls = (function(){
                     return;
                 }
 
-                this._removeControl( this._controls[k] );
+                this._removeControl( this._controls[k], true );
                 k--;
             }
 
@@ -1397,16 +1409,94 @@ ShaderTool.modules.SaveController = (function(){
             if(savedData){
                 ShaderTool.modules.Rendering.setData(savedData, true);
             }
+            this._initSaveDialogs();
 
             ShaderTool.modules.Rendering.onChange.add( this._saveLocalState, this);
+
+            this._saveLocalState();
+        },
+        _initSaveDialogs: function(){
+            this.dom = {};
+
+            this.dom.setCodeInput = document.getElementById('st-set-code-input');
+            this.dom.setCodeSubmit = document.getElementById('st-set-code-submit');
+            this.dom.getCodeInput = document.getElementById('st-get-code-input');
+
+            var self = this;
+            ShaderTool.Utils.DOMUtils.addEventListener(this.dom.setCodeSubmit, 'click', function( e ){
+                var code = self.dom.setCodeInput.value;
+                if(code != ''){
+                    ShaderTool.modules.Rendering.setData(JSON.parse(code), true)
+                }
+            })
         },
         _saveLocalState: function(){
             var saveData = ShaderTool.modules.Rendering.getData();
             ShaderTool.helpers.LSHelper.setItem('lastShaderData', saveData);
+
+            this.dom.getCodeInput.value = JSON.stringify(saveData);
         }
     }
 
     return new SaveController();
+})();
+
+
+ShaderTool.modules.PopupManager = (function(){
+
+    var OPENED_CLASS_NAME = '_opened';
+
+    function PopupManager(){}
+    PopupManager.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.PopupManager.init');
+
+            this.dom = {};
+            this.dom.overlay = document.getElementById('st-popup-overlay');
+
+            this._opened = false;
+
+            var self = this;
+            ShaderTool.Utils.DOMUtils.addEventListener(this.dom.overlay, 'mousedown', function( e ){
+                if( e.target === self.dom.overlay ){
+                    self.close();
+                }
+            })
+
+            var openers = document.querySelectorAll('[data-popup-opener]');
+
+            ShaderTool.Utils.DOMUtils.addEventListener(openers, 'click', function( e ){
+                self.open( this.getAttribute('data-popup-opener') )
+            })
+        },
+
+        open: function( popupName ){
+            this.close();
+
+            var popup = this.dom.overlay.querySelector(popupName);
+            if( popup ){
+                this._opened = true;
+
+                this._currentPopup = popup;
+                ShaderTool.Utils.DOMUtils.addClass(this._currentPopup, OPENED_CLASS_NAME);
+                ShaderTool.Utils.DOMUtils.addClass(this.dom.overlay, OPENED_CLASS_NAME);
+
+            } else {
+                // TODO;
+            }
+        },
+        close: function(){
+            if(!this._opened){
+                return;
+            }
+            this._opened = false;
+
+            ShaderTool.Utils.DOMUtils.removeClass(this.dom.overlay, OPENED_CLASS_NAME);
+            ShaderTool.Utils.DOMUtils.removeClass(this._currentPopup, OPENED_CLASS_NAME);
+        }
+    }
+
+    return new PopupManager();
 })();
 
 // classes
