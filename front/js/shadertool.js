@@ -51,6 +51,9 @@ ShaderTool.Utils = {
         // return Object.prototype.toString.call(object) === '[object Array]';
     },
     isArrayLike: function( object ){
+        if( this.isArray(object) ){
+            return true
+        }
         if( typeof object.length == 'number' && typeof object[0] != 'undefined' && typeof object[object.length] != 'undefined'){
             return true;
         }
@@ -877,11 +880,13 @@ ShaderTool.modules.UniformControls = (function(){
             this._createControl('test3', UniformControls.FLOAT, [{ value: 1 }], true );
 
             //
-            this._initCreateControls();
+            
 
             //this._callChangeUniformList();
             //this._callChangeUniformValue();
             */
+
+            this._initCreateControls();
         },
 
         /* Public methods */
@@ -968,7 +973,7 @@ ShaderTool.modules.UniformControls = (function(){
             var addUniformSubmit = document.getElementById('st-add-uniform-submit');
             var self = this;
 
-            ShaderTool.Utils.DOMUtils.addEventListener(addUniformSubmit, 'mousedown', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(addUniformSubmit, 'click', function( e ){
                 e.preventDefault();
                 
                 var name = addUniformNameInput.value;
