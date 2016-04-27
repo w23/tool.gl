@@ -18,18 +18,17 @@ var ShaderTool = new (function ShaderTool(){
     this.VERSION = '0.01';
 
     this.modules = {};
+    this.helpers = {};
     this.classes = {};
 
     var self = this;
     catchReady(function(){
 
-        self.modules.Ticker.init();
         self.modules.GUIHelper.init();
-        self.modules.FSHelper.init();
         self.modules.UniformControls.init();
-        // self.modules.Controls.init();
         self.modules.Editor.init();
         self.modules.Rendering.init();
+        self.modules.SaveController.init();
 
         document.documentElement.className = '_ready';
     });
@@ -37,7 +36,7 @@ var ShaderTool = new (function ShaderTool(){
 })();
 
 // Utils
-ShaderTool.utils = {
+ShaderTool.Utils = {
     trim: function( string ){
         return string.replace(/^\s+|\s+$/g, '');
     },
@@ -191,7 +190,7 @@ ShaderTool.utils = {
 };
 
 // Callback (Signal?)
-ShaderTool.utils.Callback = (function(){
+ShaderTool.Utils.Callback = (function(){
     // Callback == Signal ?
     function Callback() {
         this._handlers = [];
@@ -244,11 +243,11 @@ ShaderTool.utils.Callback = (function(){
     return Callback;
 })();
 
-ShaderTool.utils.Float32Array = (function(){
+ShaderTool.Utils.Float32Array = (function(){
     return typeof Float32Array === 'function' ? Float32Array : Array;
 })();
 
-ShaderTool.utils.DOMUtils = (function(){
+ShaderTool.Utils.DOMUtils = (function(){
     function addSingleEventListener(element, eventName, handler){
         if (element.addEventListener) {
             element.addEventListener(eventName, handler);
@@ -265,7 +264,7 @@ ShaderTool.utils.DOMUtils = (function(){
     DOMUtils.prototype = {
         addEventListener : function(element, eventName, handler){
 
-            if(ShaderTool.utils.isArray(element)){
+            if(ShaderTool.Utils.isArray(element)){
 
                 var totalElements = element.length;
                 for(var k=0; k<totalElements; k++){
@@ -274,7 +273,7 @@ ShaderTool.utils.DOMUtils = (function(){
 
             } else {
 
-                var eventName = ShaderTool.utils.isArray(eventName) ? eventName : eventName.split(' ').join('|').split(',').join('|').split('|');
+                var eventName = ShaderTool.Utils.isArray(eventName) ? eventName : eventName.split(' ').join('|').split(',').join('|').split('|');
 
                 if(eventName.length > 1){
 
@@ -332,14 +331,38 @@ ShaderTool.utils.DOMUtils = (function(){
 })();
 
 
-// Modules
+// Helpers
+// LSHelper
+ShaderTool.helpers.LSHelper = (function(){
+    var ALLOW_WORK = window.localStorage != null || window.sessionStorage != null;
+
+    function LSHelper(){
+        this._storage = window.localStorage || window.sessionStorage;
+    }
+    LSHelper.prototype = {
+        setItem: function( key, data ){
+            if( !ALLOW_WORK ){ return null }
+
+            this._storage.setItem( key, JSON.stringify(data) )
+        },
+        getItem: function( key ){
+            if( !ALLOW_WORK ){ return null }
+
+            return JSON.parse(this._storage.getItem( key ))
+        },
+        clearItem: function( key ){
+            if( !ALLOW_WORK ){ return null }
+
+            this._storage.removeItem( key )
+        }
+    }
+    return new LSHelper();
+})();
+
 // FSHelper
-ShaderTool.modules.FSHelper = (function(){
+ShaderTool.helpers.FSHelper = (function(){
     function FSHelper(){};
     FSHelper.prototype = {
-        init: function(){
-
-        },
         request: function( element ){
             if (element.requestFullscreen) {
                 element.requestFullscreen();
@@ -363,7 +386,7 @@ ShaderTool.modules.FSHelper = (function(){
 })();
 
 // Ticker
-ShaderTool.modules.Ticker = (function(){
+ShaderTool.helpers.Ticker = (function(){
     var raf;
     var lastTime = 0;
     var vendors = ['ms', 'moz', 'webkit', 'o'];
@@ -374,7 +397,7 @@ ShaderTool.modules.Ticker = (function(){
     }
     if (!window.requestAnimationFrame){
         raf = function( callback ) {
-            var currTime = utils.now();
+            var currTime = Utils.now();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
 
             var id = window.setTimeout( function(){
@@ -390,73 +413,71 @@ ShaderTool.modules.Ticker = (function(){
          }
      }
 
-    function Ticker(){};
-    Ticker.prototype = {
-        init: function(){
-            console.log('ShaderTool.modules.Ticker.init');
+    function Ticker(){
 
-            this.onTick = new ShaderTool.utils.Callback();
+        this.onTick = new ShaderTool.Utils.Callback();
 
-            var activeState = true;
-            var applyArgs = [];
-            var listeners = [];
-            var prevTime = ShaderTool.utils.now();
-            var elapsedTime = 0;
-            var timeScale = 1;
-            var self = this;
-			var skippedFrames = 0;
-			var maxSkipFrames = 3;
+        var activeState = true;
+        var applyArgs = [];
+        var listeners = [];
+        var prevTime = ShaderTool.Utils.now();
+        var elapsedTime = 0;
+        var timeScale = 1;
+        var self = this;
+        var skippedFrames = 0;
+        var maxSkipFrames = 3;
 
-            this.stop = this.pause = this.sleep = function(){
-                activeState = false;
-                return this;
-            }
-            this.start = this.wake = function(){
-                activeState = true;
-                return this;
-            }
-
-            this.reset = function(){
-                elapsedTime = 0;
-            }
-
-            this.timeScale = function( value ){
-                if(ShaderTool.utils.isSet(value)){ timeScale = value; }
-                return timeScale;
-            }    
-            this.toggle = function(){
-                return (activeState ? this.stop() : this.start());
-            }    
-            this.isActive = function(){
-                return activeState;
-            }
-            this.getTime = function(){
-                return elapsedTime;
-            }
-            function tickHandler( nowTime ){
-
-                var delta = (nowTime - prevTime) * timeScale;
-                prevTime = nowTime;
-
-            	if(skippedFrames < maxSkipFrames){
-            		skippedFrames++;
-            	} else {
-	                if(activeState){
-                        elapsedTime += delta;
-
-	                    self.onTick.call(delta, elapsedTime)
-	                }            		
-            	}
-
-                raf( tickHandler );
-            }
-            raf( tickHandler );
-
+        this.stop = this.pause = this.sleep = function(){
+            activeState = false;
+            return this;
         }
-    }
+        this.start = this.wake = function(){
+            activeState = true;
+            return this;
+        }
+
+        this.reset = function(){
+            elapsedTime = 0;
+        }
+
+        this.timeScale = function( value ){
+            if(ShaderTool.Utils.isSet(value)){ timeScale = value; }
+            return timeScale;
+        }    
+        this.toggle = function(){
+            return (activeState ? this.stop() : this.start());
+        }    
+        this.isActive = function(){
+            return activeState;
+        }
+        this.getTime = function(){
+            return elapsedTime;
+        }
+        function tickHandler( nowTime ){
+
+            var delta = (nowTime - prevTime) * timeScale;
+            prevTime = nowTime;
+
+            if(skippedFrames < maxSkipFrames){
+                skippedFrames++;
+            } else {
+                if(activeState){
+                    elapsedTime += delta;
+
+                    self.onTick.call(delta, elapsedTime)
+                }                   
+            }
+
+            raf( tickHandler );
+        }
+        raf( tickHandler );
+    };
     return new Ticker();
 })();
 
+
+
+// Modules
 // Future module
 ShaderTool.modules.GUIHelper = (function(){
     function GUIHelper(){}
@@ -490,31 +511,40 @@ ShaderTool.modules.Editor = (function(){
 
             this._editor.$blockScrolling = Infinity;
 
-            this.onChange = new ShaderTool.utils.Callback();
+            this.onChange = new ShaderTool.Utils.Callback();
 
             var self = this;
 
             //this._editor.on('change', function(){
                 //self.onChange.call();
             //});
+            this._editor.on('change', ShaderTool.Utils.throttle(function(){
 
-            this._editor.on('change', ShaderTool.utils.throttle(function(){
-                self.onChange.call();
+                if(!self._skipCallChange){
+                    self.onChange.call();
+                }
             }, 1000 / 60 * 10));
         },
-        getValue: function(){
+        getData: function(){
             return this._editor.getSession().getValue();
         },
-        setValue: function( value ){
+        setData: function( value, skipCallChangeFlag ){
+
+            this._skipCallChange = skipCallChangeFlag;
             this._editor.getSession().setValue( value );
+            this._skipCallChange = false;
+
+            if(!skipCallChangeFlag){
+                this.onChange.call();
+            }
         },
         clear: function(){
             this.setValue('');
         },
         // future methods:
-        lock: function(){},
-        unlock: function(){},
-        load: function( url ){}
+        //lock: function(){},
+        //unlock: function(){},
+        //load: function( url ){}
     }
 
     return new Editor();
@@ -535,6 +565,8 @@ ShaderTool.modules.Rendering = (function(){
 
             this._initSceneControls();
 
+            this.onChange = new ShaderTool.Utils.Callback();
+
             // this._sourceChanged = true;
 
 			var fragmentSource = 'precision mediump float;\n';
@@ -552,7 +584,7 @@ ShaderTool.modules.Rendering = (function(){
 				fragment: fragmentSource
 			});
 
-			this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
+			this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.Utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
 
 			this._resolution = null;
 			this._texture = null;
@@ -579,18 +611,18 @@ ShaderTool.modules.Rendering = (function(){
 			this._rasterizers = [];
 			this._rasterizers.push(new ShaderTool.classes.Rasterizer( this._context ));
 
-			this._updateSource();
+			// this._updateSource();
 
 			ShaderTool.modules.Editor.onChange.add(this._updateSource, this);
 
             ShaderTool.modules.UniformControls.onChangeUniformList.add(this._updateSource, this);
             ShaderTool.modules.UniformControls.onChangeUniformValue.add(this._updateUniforms, this);
 
-			ShaderTool.modules.Ticker.onTick.add(this._render, this);
+			ShaderTool.helpers.Ticker.onTick.add(this._render, this);
 		},
-		_updateSource: function(){
+		_updateSource: function( skipCallChangeFlag ){
             var uniformSource = ShaderTool.modules.UniformControls.getUniformsCode();
-            var shaderSource = ShaderTool.modules.Editor.getValue();
+            var shaderSource = ShaderTool.modules.Editor.getData();
             var fullSource = 'precision mediump float;\n\n' + uniformSource + '\n\n\n' + shaderSource;
 
             var totalRasterizers = this._rasterizers.length;
@@ -600,15 +632,18 @@ ShaderTool.modules.Rendering = (function(){
                 rasterizer.updateSource(fullSource);
             }
 
-            this._updateUniforms();
+            this._updateUniforms( skipCallChangeFlag );
 		},
-        _updateUniforms: function(){
+        _updateUniforms: function( skipCallChangeFlag ){
             var uniforms = ShaderTool.modules.UniformControls.getUniformsData( this._context );
 
             var totalRasterizers = this._rasterizers.length;
             for(var k=0; k<totalRasterizers; k++){
                 var rasterizer = this._rasterizers[k];
                 rasterizer.updateUniforms(uniforms);
+            }
+            if(!skipCallChangeFlag){
+                this.onChange.call();
             }
         },
 		_setResolution: function (width, height) {
@@ -644,40 +679,40 @@ ShaderTool.modules.Rendering = (function(){
 
             function setPlayingState( state ){
                 if(state){
-                    ShaderTool.modules.Ticker.start();
+                    ShaderTool.helpers.Ticker.start();
 
                     self.dom.playButton.style.display = 'none';
                     self.dom.pauseButton.style.display = '';
                 } else {
-                    ShaderTool.modules.Ticker.stop();
+                    ShaderTool.helpers.Ticker.stop();
 
                     self.dom.playButton.style.display = '';
                     self.dom.pauseButton.style.display = 'none';
                 }
             }
 
-            ShaderTool.utils.DOMUtils.addEventListener(this.dom.playButton, 'mousedown', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(this.dom.playButton, 'mousedown', function( e ){
                 e.preventDefault();
                 setPlayingState( true );
             });
 
-            ShaderTool.utils.DOMUtils.addEventListener(this.dom.pauseButton, 'mousedown', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(this.dom.pauseButton, 'mousedown', function( e ){
                 e.preventDefault();
                 setPlayingState( false );
             });
 
-            ShaderTool.utils.DOMUtils.addEventListener(this.dom.rewindButton, 'mousedown', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(this.dom.rewindButton, 'mousedown', function( e ){
                 e.preventDefault();
-                ShaderTool.modules.Ticker.reset();
+                ShaderTool.helpers.Ticker.reset();
             });
 
-            ShaderTool.utils.DOMUtils.addEventListener(this.dom.fullscreenButton, 'mousedown', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(this.dom.fullscreenButton, 'mousedown', function( e ){
                 e.preventDefault();
-                ShaderTool.modules.FSHelper.request(self._canvas);
+                ShaderTool.helpers.FSHelper.request(self._canvas);
             });            
-            ShaderTool.utils.DOMUtils.addEventListener(this._canvas, 'dblclick', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(this._canvas, 'dblclick', function( e ){
                 e.preventDefault();
-                ShaderTool.modules.FSHelper.exit();
+                ShaderTool.helpers.FSHelper.exit();
             }); 
 
             this.dom.timescaleRange.setAttribute('step', '0.001');
@@ -685,10 +720,9 @@ ShaderTool.modules.Rendering = (function(){
             this.dom.timescaleRange.setAttribute('max', '10');
             this.dom.timescaleRange.setAttribute('value', '1');
 
-            ShaderTool.utils.DOMUtils.addEventListener(this.dom.timescaleRange, 'input change', function( e ){
-                ShaderTool.modules.Ticker.timeScale( parseFloat(self.dom.timescaleRange.value) )
+            ShaderTool.Utils.DOMUtils.addEventListener(this.dom.timescaleRange, 'input change', function( e ){
+                ShaderTool.helpers.Ticker.timeScale( parseFloat(self.dom.timescaleRange.value) )
             });
-
 
             setPlayingState( true );
         },
@@ -731,26 +765,31 @@ ShaderTool.modules.Rendering = (function(){
 
 			this._writePosition = (this._writePosition + 1) & 1;
 
-
-            // this._source.uniforms = ShaderTool.modules.UniformControls.getUniformsData();
-
             this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime );
             this._source.uniforms['uv2_resolution'] = this._context.UniformVec2( this._resolution );
             this._source.uniforms['us2_source'] = this._context.UniformSampler( this._texture[this._writePosition] );
 
-            /*
-			this._source.uniforms['uf_time'] = this._context.UniformFloat( elapsedTime );
-			this._source.uniforms['uv2_resolution'] = this._context.UniformVec2( this._resolution );
-			this._source.uniforms['us2_source'] = this._context.UniformSampler(this._texture[this._writePosition]);
-
-            var uniformsData = ShaderTool.modules.UniformControls.getUniformsData();
-            for(var i in uniformsData){
-                this._source.uniforms[i] = uniformsData[i];
-            }
-            */
-
 			this._context.rasterize(this._source);
-		}
+		},
+
+        getData: function(){
+            return {
+                uniforms: ShaderTool.modules.UniformControls.getData(),
+                source: ShaderTool.modules.Editor.getData()           
+            }
+        },
+        setData: function( data, skipCallChangeFlag ){
+
+            ShaderTool.modules.UniformControls.setData( data.uniforms, true );
+            ShaderTool.modules.Editor.setData( data.source, true );
+            
+            
+            this._updateSource( skipCallChangeFlag );
+
+            if(!skipCallChangeFlag){
+                this.onChange.call();
+            }
+        }
 	}
 
 	return new Rendering();
@@ -764,8 +803,8 @@ ShaderTool.modules.UniformControls = (function(){
         init: function(){
             console.log('ShaderTool.modules.UniformControls.init');
 
-            this.onChangeUniformList = new ShaderTool.utils.Callback();
-            this.onChangeUniformValue = new ShaderTool.utils.Callback();
+            this.onChangeUniformList = new ShaderTool.Utils.Callback();
+            this.onChangeUniformValue = new ShaderTool.Utils.Callback();
 
             this._changed = true;
 
@@ -813,7 +852,7 @@ ShaderTool.modules.UniformControls = (function(){
             for(var k=0; k<totalTypes; k++){
                 this._createControl('myControl' + (k+1), UniformControls.TYPES[k], null, true );
             }
-            */
+            
 
             //uniform float slide;
             //uniform vec3 color1;
@@ -830,6 +869,7 @@ ShaderTool.modules.UniformControls = (function(){
 
             //this._callChangeUniformList();
             //this._callChangeUniformValue();
+            */
         },
 
         /* Public methods */
@@ -871,8 +911,6 @@ ShaderTool.modules.UniformControls = (function(){
             }
 
             return this._uniforms;
-
-            return this._uniforms
         },
 
         getData: function(){
@@ -885,14 +923,26 @@ ShaderTool.modules.UniformControls = (function(){
                 uniforms.push({
                     name: control.name,
                     type: control.type,
-                    data: control.getData() // [{value: 11.02, min: 0, max: 100}, ... ]
+                    data: control.data
                 })
             }
 
-            console.log(uniforms)
+            return uniforms;
         },
-        setData: function( uniforms ){
+        setData: function( uniforms, skipCallChangeFlag){
+            this._clearControls( skipCallChangeFlag );
 
+            // TODO;
+            var totalUniforms = uniforms.length;
+            for(var k=0; k<totalUniforms; k++){
+                var uniformData = uniforms[k];
+
+                this._createControl(uniformData.name, uniformData.type, uniformData.data, true)
+            }
+
+            if(!skipCallChangeFlag){
+                this._callChangeUniformList();
+            }
         },
 
         /* Private methods */
@@ -906,7 +956,7 @@ ShaderTool.modules.UniformControls = (function(){
             var addUniformSubmit = document.getElementById('st-add-uniform-submit');
             var self = this;
 
-            ShaderTool.utils.DOMUtils.addEventListener(addUniformSubmit, 'mousedown', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(addUniformSubmit, 'mousedown', function( e ){
                 e.preventDefault();
                 
                 var name = addUniformNameInput.value;
@@ -925,6 +975,9 @@ ShaderTool.modules.UniformControls = (function(){
         },
 
         _createControl: function( name, type, initialData, skipCallChangeFlag ){
+
+            this._changed = true;
+
             var self = this;
             var control;
             var elementTemplate = this._templates[type];
@@ -934,11 +987,11 @@ ShaderTool.modules.UniformControls = (function(){
                 return;
             }
 
-            var element = ShaderTool.utils.DOMUtils.createFromHTML(elementTemplate);
+            var element = ShaderTool.Utils.DOMUtils.createFromHTML(elementTemplate);
 
             var createMethod = this._createMethods[type];
             if( createMethod ){
-                initialData = ShaderTool.utils.isArray(initialData) ? initialData : [];
+                initialData = ShaderTool.Utils.isArray(initialData) ? initialData : [];
 
                 control = createMethod.apply(this, [name, element, initialData] );
             } else {
@@ -948,6 +1001,7 @@ ShaderTool.modules.UniformControls = (function(){
 
             control.name = name;
             control.type = type;
+            control.element = element;
 
             this._controls.push(control);
             this._container.appendChild(element);
@@ -958,7 +1012,7 @@ ShaderTool.modules.UniformControls = (function(){
                 nameElement.setAttribute('title', 'Uniform ' + name + ' settings');
                 nameElement.innerHTML = name;
 
-                ShaderTool.utils.DOMUtils.addEventListener(nameElement, 'dblclick', function( e ){
+                ShaderTool.Utils.DOMUtils.addEventListener(nameElement, 'dblclick', function( e ){
                     e.preventDefault();
                     alert('Show uniform rename dialog?')
                 });
@@ -967,12 +1021,11 @@ ShaderTool.modules.UniformControls = (function(){
             // delete element
             var deleteElement = element.querySelector('[data-uniform-delete]');
             if(deleteElement){
-                ShaderTool.utils.DOMUtils.addEventListener(deleteElement, 'click', function( e ){
+                ShaderTool.Utils.DOMUtils.addEventListener(deleteElement, 'click', function( e ){
                     e.preventDefault();
 
                     if (confirm('Delete uniform?')) {
                         self._removeControl( control );
-                        self._container.removeChild( element );
                     }
 
                 });
@@ -987,6 +1040,8 @@ ShaderTool.modules.UniformControls = (function(){
             for(var k=0; k<totalControls; k++){
                 if(this._controls[k] === control){
                     this._controls.splice(k, 1);
+
+                    control.element.parentNode.removeChild( control.element );
                     break;
                 }
             }
@@ -995,11 +1050,18 @@ ShaderTool.modules.UniformControls = (function(){
             }
         },
         _clearControls: function(skipCallChangeFlag){
-            return;
 
-            while(this._controls.length){
-                this._removeControl(this._controls.length-1, true);
+            var c = 0;
+            for(var k=0;k<this._controls.length; k++){
+                c++;
+                if(c > 100){
+                    return;
+                }
+
+                this._removeControl( this._controls[k] );
+                k--;
             }
+
             if(!skipCallChangeFlag){
                 this._callChangeUniformList();
             }
@@ -1025,9 +1087,6 @@ ShaderTool.modules.UniformControls = (function(){
 
                 getUniformValue: function(){
                     return uniformValue;
-                },
-                getData: function(){
-                    return saveData;
                 }
             }
         },
@@ -1058,9 +1117,6 @@ ShaderTool.modules.UniformControls = (function(){
 
                 getUniformValue: function(){
                     return uniformValue;
-                },
-                getData: function(){
-                    return saveData;
                 }
             }
         },
@@ -1097,9 +1153,6 @@ ShaderTool.modules.UniformControls = (function(){
 
                 getUniformValue: function(){
                     return uniformValue;
-                },
-                getData: function(){
-                    return saveData;
                 }
             }
         },
@@ -1142,9 +1195,6 @@ ShaderTool.modules.UniformControls = (function(){
 
                 getUniformValue: function(){
                     return uniformValue;
-                },
-                getData: function(){
-                    return saveData;
                 }
             }
         },
@@ -1161,9 +1211,6 @@ ShaderTool.modules.UniformControls = (function(){
                 code: 'uniform vec3 ' + name + ';',
                 data: saveData,
                 getUniformValue: function(){
-                    return saveData;
-                },
-                getData: function(){
                     return saveData;
                 }
             }
@@ -1183,14 +1230,12 @@ ShaderTool.modules.UniformControls = (function(){
 
                 getUniformValue: function(){
                     return saveData;
-                },
-                getData: function(){
-                    return saveData;
                 }
             }
         },
+
         _prepareColorData: function( inputData, vec4Format ){
-            inputData = ShaderTool.utils.isArray( inputData ) ? inputData : [];
+            inputData = ShaderTool.Utils.isArray( inputData ) ? inputData : [];
             var resultData = vec4Format ? [0,0,0,1] : [0,0,0];
 
             var counter = vec4Format ? 4 : 3;
@@ -1207,11 +1252,7 @@ ShaderTool.modules.UniformControls = (function(){
         _prepareRangeData: function( inputData ){
             inputData = typeof inputData == 'undefined' ? {} : inputData;
 
-            var resultData = {
-                value: 0,
-                min: 0,
-                max: 1
-            };
+            var resultData = { value: 0, min: 0, max: 1 };
 
             for(var i in resultData){
                 if(typeof inputData[i] != 'undefined'){
@@ -1221,10 +1262,11 @@ ShaderTool.modules.UniformControls = (function(){
 
             return resultData;
         },
+
         _initColorSelectElementGroup: function( element, useAlpha, initialData, changeHandler ){
             var colorElement = element.querySelector('[data-color]');
 
-            ShaderTool.utils.DOMUtils.addEventListener(colorElement, 'change', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(colorElement, 'change', function( e ){
                 var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(colorElement.value);
 
                 initialData[0] = parseInt( result[1], 16 ) / 256;
@@ -1242,13 +1284,14 @@ ShaderTool.modules.UniformControls = (function(){
                 rangeElement.setAttribute('step', '0.001');
                 rangeElement.setAttribute('value', '1');
 
-                ShaderTool.utils.DOMUtils.addEventListener(rangeElement, 'input change', function( e ){
+                ShaderTool.Utils.DOMUtils.addEventListener(rangeElement, 'input', function( e ){
                     initialData[3] = parseFloat(rangeElement.value);
 
                     changeHandler();
                 })
             }
         },
+
         _initRangeElementGroup: function( element, attrIndex, initialData, changeHandler, stepValue ){
             var minValue = initialData.min;
             var maxValue = initialData.max;
@@ -1271,7 +1314,7 @@ ShaderTool.modules.UniformControls = (function(){
 
             rangeElement.value = initialData.value;   
 
-            ShaderTool.utils.DOMUtils.addEventListener(rangeElement, 'input change', function( e ){
+            ShaderTool.Utils.DOMUtils.addEventListener(rangeElement, 'input', function( e ){
 
                 if(minElement.value == ''){
                     minElement.value = prevMinValue;
@@ -1302,8 +1345,8 @@ ShaderTool.modules.UniformControls = (function(){
                 prevMinValue = minElement.value;
                 prevMaxValue = maxElement.value;
 
-                minValue = ShaderTool.utils.toDecimalString(minElement.value);
-                maxValue = ShaderTool.utils.toDecimalString(maxElement.value);
+                minValue = ShaderTool.Utils.toDecimalString(minElement.value);
+                maxValue = ShaderTool.Utils.toDecimalString(maxElement.value);
 
                 var min = minValue = parseFloat(minValue);
                 var max = maxValue = parseFloat(maxValue);
@@ -1319,8 +1362,8 @@ ShaderTool.modules.UniformControls = (function(){
                 initialData.max = max;
             }
 
-            ShaderTool.utils.DOMUtils.addEventListener([minElement, maxElement], 'keydown input change', function( e ){
-                if(!ShaderTool.utils.isNumberKey( e )){
+            ShaderTool.Utils.DOMUtils.addEventListener([minElement, maxElement], 'keydown input change', function( e ){
+                if(!ShaderTool.Utils.isNumberKey( e )){
                     e.preventDefault();
                     return false;
                 }
@@ -1342,6 +1385,30 @@ ShaderTool.modules.UniformControls = (function(){
     return new UniformControls();
 })();
 
+// SaveController
+ShaderTool.modules.SaveController = (function(){
+    function SaveController(){}
+
+    SaveController.prototype = {
+        init: function(){
+            console.log('ShaderTool.modules.SaveController.init');
+
+            var savedData = ShaderTool.helpers.LSHelper.getItem('lastShaderData');
+            if(savedData){
+                ShaderTool.modules.Rendering.setData(savedData, true);
+            }
+
+            ShaderTool.modules.Rendering.onChange.add( this._saveLocalState, this);
+        },
+        _saveLocalState: function(){
+            var saveData = ShaderTool.modules.Rendering.getData();
+            ShaderTool.helpers.LSHelper.setItem('lastShaderData', saveData);
+        }
+    }
+
+    return new SaveController();
+})();
+
 // classes
 ShaderTool.classes.Rasterizer = (function(){
 	var VERTEX_SOURCE = 'attribute vec2 av2_vtx;varying vec2 vv2_v;void main(){vv2_v = av2_vtx;gl_Position = vec4(av2_vtx, 0., 1.);}';
@@ -1351,7 +1418,7 @@ ShaderTool.classes.Rasterizer = (function(){
 
 		this._program = null;
 		this._prevProgram = null;
-		this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
+		this._buffer = this._context.createVertexBuffer().upload(new ShaderTool.Utils.Float32Array([1,-1,1,1,-1,-1,-1,1]));
 
 		this._source = {
 			program: this._program,
@@ -1378,12 +1445,16 @@ ShaderTool.classes.Rasterizer = (function(){
 				});
 				this._source.program = newProgram;
 			} catch( e ){
-				console.log('Error updating Rasterizer fragmentSource: ' + e.message);
+
+
+				console.warn('Error updating Rasterizer fragmentSource: ' + e.message);
 				savePrevProgramFlag = false;
 
 				if(this._prevProgram){
 					this._source.program = this._prevProgram;
 				}
+
+
 			}
 			if(savePrevProgramFlag){
 				this._prevProgram = newProgram;
