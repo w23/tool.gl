@@ -1414,7 +1414,7 @@ ShaderTool.modules.UniformControls = (function(){
 
 // SaveController
 ShaderTool.modules.SaveController = (function(){
-    var DEFAULT_CODE = '{"uniforms":[{"name":"bgcolor","type":"color3","data":[0.99609375,0.8046875,0.56640625]}],"source":"void main() {\n    gl_FragColor = vec4(bgcolor, 1.);\n}"}';
+    var DEFAULT_CODE = '{"uniforms":[{"name":"bgcolor","type":"color3","data":[0.99609375,0.8046875,0.56640625]}],"source":"void main() {\\n    gl_FragColor = vec4(bgcolor, 1.);\\n}"}';
 
     function SaveController(){}
 
@@ -1426,7 +1426,7 @@ ShaderTool.modules.SaveController = (function(){
             if(savedData){
                 ShaderTool.modules.Rendering.setData(savedData, true);
             } else {
-                ShaderTool.modules.Rendering.setData(DEFAULT_CODE, true);
+                ShaderTool.modules.Rendering.setData(JSON.parse(DEFAULT_CODE), true);
             }
 
             this._initSaveDialogs();
