@@ -1,6 +1,7 @@
 #!/bin/sh
 
-virtualenv venv
+virtualenv venv || pyvenv venv
 source venv/bin/activate
-yes | pip install --update pip
+yes | pip install --upgrade pip
 yes | pip install gunicorn peewee falcon bcrypt
+python dummy.py create
