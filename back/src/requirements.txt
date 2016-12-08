@@ -1,0 +1,10 @@
+Django==1.10.3
+django-filter==1.0.0
+django-rest-framework-nested==0.0.1
+django-taggit==0.21.3
+django-taggit-serializer==0.1.5
+djangorestframework==3.5.3
+pkg-resources==0.0.0
+psycopg2==2.6.2
+six==1.10.0
+Yapsy==1.11.223
